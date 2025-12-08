@@ -1,0 +1,79 @@
+{
+  "name": "markdown-parser",
+  "version": "1.0.0",
+  "description": "A powerful and extensible Markdown parser with plugin system, AST generation, and multiple output formats",
+  "main": "src/index.js",
+  "bin": {
+    "markdown-parser": "bin/cli.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit/",
+    "test:e2e": "jest tests/e2e/",
+    "test:performance": "jest tests/performance/ --testTimeout=30000",
+    "test:randomized": "jest tests/randomized/",
+    "test:load": "jest tests/load/ --testTimeout=60000",
+    "test:all": "jest --testTimeout=60000",
+    "test:ci": "jest --ci --coverage --testTimeout=60000",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+    "build": "node scripts/build.js",
+    "start": "node src/server.start.js",
+    "start:cli": "node src/cli/index.js",
+    "dev": "node src/cli/index.js --watch",
+    "cli:help": "node src/cli/index.js help",
+    "cli:version": "node src/cli/index.js version",
+    "benchmark": "jest tests/performance/benchmarks.test.js --verbose --testTimeout=60000",
+    "examples": "node examples/usage.js"
+  },
+  "keywords": [
+    "markdown",
+    "parser",
+    "ast",
+    "html",
+    "plugin",
+    "renderer"
+  ],
+  "author": "Tkachenko Zenoviia",
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Zenoviia/Markdown-parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zenoviia/Markdown-parser/issues"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "jest": "^27.0.0",
+    "prettier": "^2.3.2"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "helmet": "^6.0.1",
+    "supertest": "^7.1.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js",
+      "!src/cli/index.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 40,
+        "functions": 45,
+        "lines": 50,
+        "statements": 50
+      }
+    }
+  }
+}
