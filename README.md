@@ -2,8 +2,6 @@
 
 A comprehensive, high-performance Markdown parser for Node.js with support for complex Markdown features, plugins, and multiple output formats.
 
-> **Project Statistics**: 6,400+ lines of code | 9 source modules | 9 test suites | 100% test coverage | O(n) linear performance
-
 ## ✨ Features
 
 ### Core Parsing
@@ -42,8 +40,8 @@ A comprehensive, high-performance Markdown parser for Node.js with support for c
 
 ### Reliability
 
-- ✅ **100% Test Coverage** - 2,793 lines of tests
-- ✅ **Property-based Testing** - 100+ randomized test cases
+- ✅ **High Test Coverage** 
+- ✅ **Property-based Testing** 
 - ✅ **Load Testing** - Validated for 1000+ concurrent requests
 - ✅ **Security** - XSS prevention, HTML escaping
 - ✅ **Error Handling** - Comprehensive error recovery
@@ -105,7 +103,7 @@ npm start
 # or (preserve original CLI): npm run start:cli
 ```
 
-Default server port: `3000` (can be changed with `PORT` env var).
+Default server port: `3000`.
 
 Available endpoints (JSON requests):
 
@@ -134,9 +132,8 @@ Notes:
 
 - The server expects `Content-Type: application/json` for POST requests and enforces a default body size limit (100KB). Invalid JSON or wrong content type returns `400`.
 - Internal errors return `500` with a JSON error message.
-- For programmatic use, prefer the library API under `src/api` for direct integration without HTTP overhead.
 
-Environment variables (newly supported):
+Environment variables:
 
 - `BODY_SIZE_LIMIT` — JSON body size limit (e.g. `100kb`). Default: `100kb`.
 - `RATE_LIMIT_WINDOW_MS` — Rate limiter window in milliseconds. Default: `60000` (1 minute).
@@ -163,26 +160,26 @@ Browser E2E:
 │   ├── index.js                 # Main entry point
 │   ├── utils.js                 # Utility functions
 │   ├── core/
-│   │   ├── parser.js            # Main parser (426 lines)
-│   │   ├── tokenizer.js         # Tokenization (586 lines)
-│   │   └── astBuilder.js        # AST construction (514 lines)
+│   │   ├── parser.js            # Main parser 
+│   │   ├── tokenizer.js         # Tokenization
+│   │   └── astBuilder.js        # AST construction 
 │   ├── renderers/
-│   │   ├── htmlRenderer.js      # HTML output (505 lines)
-│   │   └── markdownRenderer.js  # Markdown output (312 lines)
+│   │   ├── htmlRenderer.js      # HTML output 
+│   │   └── markdownRenderer.js  # Markdown output 
 │   ├── plugins/
-│   │   └── pluginSystem.js      # Plugin system (423 lines)
+│   │   └── pluginSystem.js      # Plugin system 
 │   ├── cli/
-│   │   └── index.js             # CLI interface (368 lines)
+│   │   └── index.js             # CLI interface 
 │   └── api/
-│       └── index.js             # Public API (185 lines)
+│       └── index.js             # Public API
 ├── tests/
-│   ├── unit/                    # Unit tests (971 lines)
-│   ├── e2e/                     # E2E tests (386 lines)
-│   ├── performance/             # Performance tests (451 lines)
-│   ├── randomized/              # Fuzz tests (445 lines)
-│   └── load/                    # Load tests (540 lines)
+│   ├── unit/                    # Unit tests 
+│   ├── e2e/                     # E2E tests
+│   ├── performance/             # Performance tests 
+│   ├── randomized/              # Fuzz tests 
+│   └── load/                    # Load tests 
 ├── examples/
-│   └── usage.js                 # Usage examples (328 lines)
+│   └── usage.js                 # Usage examples 
 ├── docs/
 │   ├── API.md
 │   ├── ARCHITECTURE.md
@@ -215,7 +212,6 @@ npm run benchmark          # Performance benchmarks
 
 ```bash
 npm run test:coverage
-# View report in: coverage/index.html
 ```
 
 ## 🎯 Performance Targets
@@ -301,28 +297,4 @@ See [examples/usage.js](examples/usage.js) for 15+ practical examples including:
 - Batch file processing
 - Performance optimization
 
-## 📝 License
 
-MIT
-
-## 🤝 Contributing
-
-Contributions welcome! Please fork and create a pull request.
-
-## 📞 Support
-
-- 📖 Check [documentation](docs/API.md)
-- 🔍 Search [existing issues](../../issues)
-- 💬 Open a [new issue](../../issues/new)
-
-## 👨‍💻 Автор
-
-**Tkachenko Zenoviia** (ІМ-31)
-
-## 📅 Версія
-
-**1.0.0** - Перший випуск
-
----
-
-⭐ Якщо цей проєкт вам сподобався, будь ласка, оцініть його!
