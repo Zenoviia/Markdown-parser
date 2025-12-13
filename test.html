@@ -1,9 +1,238 @@
-<p>Set-Content -Path .\test.md -Value &#39;# Hello world</p>
-<p>This is <strong>bold</strong> and <em>italic</em>.</p>
+<h1 id="-markdown-parser">📝 Markdown Parser</h1>
+<p>A comprehensive, high-performance Markdown parser for Node.js with support for complex Markdown features, plugins, and multiple output formats.</p>
+<h2 id="-features">✨ Features</h2>
+<h3 id="core-parsing">Core Parsing</h3>
 <ul>
-<li>one</li>
-<li>two</li>
+<li>✅ Full Markdown specification support</li>
+<li>✅ Heading levels (h1-h6)</li>
+<li>✅ Text formatting (bold, italic, strikethrough)</li>
+<li>✅ Lists (ordered, unordered, nested)</li>
+<li>✅ Code blocks with syntax highlighting support</li>
+<li>✅ Inline code</li>
+<li>✅ Links and images</li>
+<li>✅ Blockquotes</li>
+<li>✅ Horizontal rules</li>
+<li>✅ Tables (GitHub-flavored)</li>
+<li>✅ Emphasis and strong emphasis</li>
+<li>✅ Hard and soft line breaks</li>
+<li>✅ HTML pass-through with sanitization</li>
 </ul>
-<p><a href="https://example.com">Link</a></p>
-<pre><code class="language-javascript">console.log(&quot;hi&quot;);```</code></pre>
-<p>console.log(&quot;hi&quot;);</p>
+<h3 id="advanced-features">Advanced Features</h3>
+<ul>
+<li>✅ <strong>Plugin System</strong> - 9 built-in plugins, easily extensible</li>
+<li>✅ <strong>Multiple Renderers</strong> - HTML, Markdown, custom formats</li>
+<li>✅ <strong>AST Generation</strong> - Structured syntax tree for custom processing</li>
+<li>✅ <strong>Table of Contents</strong> - Auto-generate from headings</li>
+<li>✅ <strong>Document Statistics</strong> - Lines, words, headings, links, etc.</li>
+<li>✅ <strong>Validation</strong> - Check Markdown validity</li>
+<li>✅ <strong>ID Generation</strong> - Auto-generate heading IDs</li>
+</ul>
+<h3 id="performance">Performance</h3>
+<ul>
+<li>✅ <strong>Linear Performance</strong> - O(n) parsing complexity</li>
+<li>✅ <strong>High Throughput</strong> - 100+ req/sec for small documents</li>
+<li>✅ <strong>Memory Efficient</strong> - &lt; 100MB for 1000-line documents</li>
+<li>✅ <strong>Fast Rendering</strong> - Multiple format support</li>
+<li>✅ <strong>Caching</strong> - Optional result caching</li>
+</ul>
+<h3 id="reliability">Reliability</h3>
+<ul>
+<li>✅ <strong>High Test Coverage</strong> </li>
+<li>✅ <strong>Property-based Testing</strong> </li>
+<li>✅ <strong>Load Testing</strong> - Validated for 1000+ concurrent requests</li>
+<li>✅ <strong>Security</strong> - XSS prevention, HTML escaping</li>
+<li>✅ <strong>Error Handling</strong> - Comprehensive error recovery</li>
+</ul>
+<h2 id="-quick-start">🚀 Quick Start</h2>
+<h3 id="installation">Installation</h3>
+<pre><code>
+### Using the API
+
+```javascript
+const api = require(&#39;./src/api&#39;);
+
+// Parse Markdown to HTML
+const html = api.parseMarkdownToHTML(&#39;# Welcome\n\nHello **world**!&#39;);
+
+// Generate table of contents
+const toc = api.generateTableOfContents(&#39;# Chapter 1\n## Section 1.1\n# Chapter 2&#39;);
+
+// Extract all links
+const links = parser.parseToAST(&#39;Check [this link](https://example.com)&#39;);
+const extracted = parser.astBuilder.extractLinks(links);</code></pre>
+<h3 id="using-the-cli">Using the CLI</h3>
+<pre><code class="language-bash"># Convert Markdown to HTML
+node bin/cli.js convert input.md --output output.html
+
+# Validate Markdown file
+node bin/cli.js validate document.md
+
+# Get document statistics
+node bin/cli.js stats README.md
+
+# Generate table of contents
+node bin/cli.js toc README.md --output TOC.md
+
+# Watch file for changes
+node bin/cli.js watch src/docs/ --output dist/</code></pre>
+<h2 id="-documentation">📚 Documentation</h2>
+<ul>
+<li><strong><a href="docs/API.md">API.md</a></strong> - Complete API reference</li>
+<li><strong><a href="docs/ARCHITECTURE.md">ARCHITECTURE.md</a></strong> - System design and architecture</li>
+<li><strong><a href="docs/TESTING.md">TESTING.md</a></strong> - Testing strategy and test suites</li>
+<li><strong><a href="examples/usage.js">examples/usage.js</a></strong> - 15+ practical examples</li>
+</ul>
+<h2 id="-http-server-endpoints">🌐 HTTP Server &amp; Endpoints</h2>
+<p>The project exposes a small Express-based HTTP server. Start it locally with:</p>
+<pre><code class="language-powershell">npm start
+# or (preserve original CLI): npm run start:cli</code></pre>
+<p>Default server port: <code>3000</code>.</p>
+<p>Available endpoints (JSON requests):</p>
+<ul>
+<li><code>POST /parse</code> — body: <code>{ &quot;markdown&quot;: &quot;# Hello&quot; }</code> → response: <code>{ &quot;ast&quot;: { ... } }</code></li>
+<li><code>POST /convert</code> — body: <code>{ &quot;markdown&quot;: &quot;# Hello&quot; }</code> → response: <code>{ &quot;html&quot;: &quot;&lt;h1&gt;...&quot; }</code></li>
+<li><code>POST /validate</code> — body: <code>{ &quot;markdown&quot;: &quot;...&quot; }</code> → response: validation object</li>
+<li><code>POST /statistics</code> — body: <code>{ &quot;markdown&quot;: &quot;...&quot; }</code> → response: statistics object</li>
+</ul>
+<p>Examples:</p>
+<p>curl (Bash):</p>
+<pre><code class="language-bash">curl -X POST http://localhost:3000/convert \
+	-H &quot;Content-Type: application/json&quot; \
+	-d &#39;{&quot;markdown&quot;:&quot;# Hello\n\nWorld&quot;}&#39;</code></pre>
+<p>PowerShell:</p>
+<pre><code class="language-powershell">Invoke-RestMethod -Method POST -Uri http://localhost:3000/convert -ContentType &#39;application/json&#39; -Body (@{ markdown = &quot;# Hi&quot; } | ConvertTo-Json)</code></pre>
+<p>Notes:</p>
+<ul>
+<li>The server expects <code>Content-Type: application/json</code> for POST requests and enforces a default body size limit (100KB). Invalid JSON or wrong content type returns <code>400</code>.</li>
+<li>Internal errors return <code>500</code> with a JSON error message.</li>
+</ul>
+<p>Environment variables:</p>
+<ul>
+<li><code>BODY_SIZE_LIMIT</code> — JSON body size limit (e.g. <code>100kb</code>). Default: <code>100kb</code>.</li>
+<li><code>RATE_LIMIT_WINDOW_MS</code> — Rate limiter window in milliseconds. Default: <code>60000</code> (1 minute).</li>
+<li><code>RATE_LIMIT_MAX</code> — Max requests per window for global limiter. Default: <code>100</code>.</li>
+<li><code>TRUST_PROXY</code> — Set to <code>1</code> to enable <code>app.set(&#39;trust proxy&#39;, 1)</code> when behind a reverse proxy. Default: unset.</li>
+</ul>
+<p>Security and rate limiting:</p>
+<ul>
+<li>The server uses <code>helmet</code> to set secure HTTP headers.</li>
+<li>A global rate limiter (<code>express-rate-limit</code>) is applied. Configure via <code>RATE_LIMIT_*</code> env vars.</li>
+</ul>
+<p>Load testing:</p>
+<ul>
+<li>Example <code>k6</code> script is provided in <code>tools/k6/convert.js</code>.</li>
+</ul>
+<p>Browser E2E:</p>
+<ul>
+<li>A Playwright test skeleton is added at <code>tests/e2e/playwright.skeleton.test.js</code>. Install Playwright and enable the test to run browser E2E.</li>
+</ul>
+<h2 id="-project-structure">🏗️ Project Structure</h2>
+<pre><code>├── src/
+│   ├── index.js                 # Main entry point
+│   ├── utils.js                 # Utility functions
+│   ├── core/
+│   │   ├── parser.js            # Main parser 
+│   │   ├── tokenizer.js         # Tokenization
+│   │   └── astBuilder.js        # AST construction 
+│   ├── renderers/
+│   │   ├── htmlRenderer.js      # HTML output 
+│   │   └── markdownRenderer.js  # Markdown output 
+│   ├── plugins/
+│   │   └── pluginSystem.js      # Plugin system 
+│   ├── cli/
+│   │   └── index.js             # CLI interface 
+│   └── api/
+│       └── index.js             # Public API
+├── tests/
+│   ├── unit/                    # Unit tests 
+│   ├── e2e/                     # E2E tests
+│   ├── performance/             # Performance tests 
+│   ├── randomized/              # Fuzz tests 
+│   └── load/                    # Load tests 
+├── examples/
+│   └── usage.js                 # Usage examples 
+├── docs/
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   └── TESTING.md
+└── package.json</code></pre>
+<h2 id="-testing">🧪 Testing</h2>
+<h3 id="run-all-tests">Run All Tests</h3>
+<pre><code class="language-bash">npm test                # All tests
+npm run test:ci        # With coverage
+npm run test:all       # All test suites</code></pre>
+<h3 id="run-specific-test-suites">Run Specific Test Suites</h3>
+<pre><code class="language-bash">npm run test:unit          # Unit tests only
+npm run test:e2e           # End-to-end tests
+npm run test:performance   # Performance benchmarks
+npm run test:randomized    # Fuzz tests
+npm run test:load          # Load tests
+npm run benchmark          # Performance benchmarks</code></pre>
+<h3 id="test-coverage">Test Coverage</h3>
+<pre><code class="language-bash">npm run test:coverage</code></pre>
+<h2 id="-performance-targets">🎯 Performance Targets</h2>
+<ul>
+<li><strong>100 lines</strong>: &lt; 100ms</li>
+<li><strong>500 lines</strong>: &lt; 300ms</li>
+<li><strong>1000 lines</strong>: &lt; 500ms</li>
+<li><strong>Throughput</strong>: 100+ req/sec (small), 50+ (medium), 10+ (large)</li>
+<li><strong>Latency</strong>: p95 &lt; 200ms, p99 &lt; 500ms under load</li>
+</ul>
+<h3 id="adaptive-performance-testing-perf_slow_factor">Adaptive Performance Testing (PERF<em>SLOW</em>FACTOR)</h3>
+<p>Performance tests include an adaptive threshold mechanism for variable development environments:</p>
+<p><strong>Default behavior</strong> (fast/modern machines):</p>
+<pre><code class="language-bash">npm run test:performance    # Uses PERF_SLOW_FACTOR = 2 (internal default)
+npm run benchmark           # Uses PERF_SLOW_FACTOR = 2
+npm run test:ci             # Uses PERF_SLOW_FACTOR = 2</code></pre>
+<p><strong>For slower machines or CI environments</strong>:</p>
+<pre><code class="language-bash"># Increase tolerance by 50% (relaxes all time thresholds)
+PERF_SLOW_FACTOR=3 npm run benchmark
+
+# Increase tolerance by 100% (very relaxed)
+PERF_SLOW_FACTOR=4 npm run test:ci</code></pre>
+<p><strong>How it works</strong>:</p>
+<ul>
+<li>Time thresholds multiply by <code>PERF_SLOW_FACTOR</code> (default: 2)</li>
+<li>Throughput expectations divide by <code>PERF_SLOW_FACTOR</code></li>
+<li>Example: 100ms threshold becomes 200ms when <code>PERF_SLOW_FACTOR=2</code></li>
+</ul>
+<p><strong>Environment variable format</strong>:</p>
+<pre><code class="language-powershell"># PowerShell
+$env:PERF_SLOW_FACTOR = &quot;3&quot;; npm run benchmark; Remove-Item Env:PERF_SLOW_FACTOR
+
+# Bash
+PERF_SLOW_FACTOR=3 npm run benchmark
+
+# Windows CMD
+set PERF_SLOW_FACTOR=3 &amp;&amp; npm run benchmark</code></pre>
+<p>This ensures tests pass consistently across different machines without requiring manual threshold adjustments.</p>
+<h2 id="-security">🔒 Security</h2>
+<p>The parser includes built-in security features:</p>
+<ol>
+<li><strong>HTML Sanitization</strong> - Prevents XSS attacks</li>
+<li><strong>Input Validation</strong> - Validates all input</li>
+<li><strong>Resource Limits</strong> - Prevents DoS attacks</li>
+<li><strong>Plugin Isolation</strong> - Plugins cannot break security</li>
+</ol>
+<h2 id="-built-in-plugins">🔌 Built-in Plugins</h2>
+<ul>
+<li>LinkProcessor</li>
+<li>ImageProcessor</li>
+<li>HeadingIdGenerator</li>
+<li>CodeHighlighter</li>
+<li>AnchorLinkGenerator</li>
+<li>EmojiProcessor</li>
+<li>StructureValidator</li>
+<li>MetadataExtractor</li>
+<li>CustomRuleProcessor</li>
+</ul>
+<h2 id="-examples">📖 Examples</h2>
+<p>See <a href="examples/usage.js">examples/usage.js</a> for 15+ practical examples including:</p>
+<ul>
+<li>Basic parsing</li>
+<li>AST generation and manipulation</li>
+<li>Custom rendering</li>
+<li>Plugin creation</li>
+<li>Batch file processing</li>
+<li>Performance optimization</li>
+</ul>

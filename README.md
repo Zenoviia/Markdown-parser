@@ -50,8 +50,6 @@ A comprehensive, high-performance Markdown parser for Node.js with support for c
 
 ### Installation
 
-````
-
 ### Using the API
 
 ```javascript
