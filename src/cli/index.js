@@ -9,6 +9,7 @@ const MarkdownParser = require("../core/parser");
 const HTMLRenderer = require("../renderers/htmlRenderer");
 const MarkdownRenderer = require("../renderers/markdownRenderer");
 const { PluginManager } = require("../plugins/pluginSystem");
+const AdvancedParser = require("../core/advancedParser");
 
 /**
  * Основний клас CLI
@@ -137,13 +138,26 @@ class CLI {
     }
 
     const markdown = fs.readFileSync(options.input, "utf-8");
+
     const validation = this.parser.validate(markdown);
 
-    if (validation.valid) {
+    const advancedParser = new AdvancedParser();
+    const formattingIssues = advancedParser.validateFormatting(markdown);
+
+    const allErrors = [
+      ...validation.errors,
+      ...formattingIssues.map(
+        (issue) => `Line ${issue.line}: ${issue.message} (${issue.type})`
+      ),
+    ];
+
+    const isValid = validation.valid && formattingIssues.length === 0;
+
+    if (isValid) {
       console.log("✓ Markdown is valid");
     } else {
       console.log("✗ Markdown has errors:");
-      validation.errors.forEach((error) => {
+      allErrors.forEach((error) => {
         console.log(`  - ${error}`);
       });
     }

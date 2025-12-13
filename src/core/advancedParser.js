@@ -364,49 +364,87 @@ class AdvancedParser {
    * @param {string} markdown - Markdown текст
    * @returns {array} Проблеми з форматуванням
    */
-  validateFormatting(markdown) {
+validateFormatting(markdown) {
     const issues = [];
     const lines = markdown.split("\n");
-
+    let inCodeBlock = false; // <--- НОВИЙ СТАН
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      const lineNumber = i + 1;
+      
+      // 1. ПЕРЕВІРКА І ОНОВЛЕННЯ СТАНУ БЛОКУ КОДУ
+      const fenceMatch = line.trim().match(/^(`{3,}|~{3,})/);
+      if (fenceMatch) {
+          // Знайдено огороджувальний паркан (початок або кінець)
+          inCodeBlock = !inCodeBlock;
+      }
+      
+      // 2. Виконуємо суворі перевірки тільки для звичайних рядків (не коду і не всередині коду)
+      // Крім того, перевірка backticks НЕ повинна запускатися на рядках, які є парканами
+      if (inCodeBlock || fenceMatch) {
+          // Якщо ми всередині коду або на рядку паркана, пропускаємо всі inline-перевірки.
+          continue;
+      }
 
-      // Перевірка на末括號
+      // 3. Стандартні inline-перевірки (викликали false positive раніше)
+      // Перевірка на незакриті квадратні кронштейни
       if (line.includes("[") && !line.includes("]")) {
         issues.push({
-          line: i + 1,
+          line: lineNumber,
           type: "unmatched_bracket",
           message: "Unmatched opening bracket",
         });
       }
+      
+      // Перевірка на баланс круглих дужок
+      let openParenCount = (line.match(/\(/g) || []).length;
+      let closeParenCount = (line.match(/\)/g) || []).length;
 
-      // Перевірка на неузгоджѐні дужки
+      if (openParenCount !== closeParenCount) {
+        issues.push({
+          line: lineNumber,
+          type: "unmatched_parenthesis_balance",
+          message: "Unbalanced parentheses (open/close count mismatch)",
+        });
+      }
+      
+      // Перевірка на неузгоджені дужки у структурі посилання
       if (line.match(/\(\[/) && !line.match(/\]\)/)) {
         issues.push({
-          line: i + 1,
+          line: lineNumber,
           type: "unmatched_parenthesis",
-          message: "Unmatched opening parenthesis",
+          message: "Unmatched opening parenthesis in link-like structure",
         });
       }
 
       // Перевірка на неправильні лінки
       if (line.includes("](") && !line.includes("[")) {
         issues.push({
-          line: i + 1,
+          line: lineNumber,
           type: "malformed_link",
           message: "Malformed link syntax",
         });
       }
 
-      // Перевірка на змішані огородження коду
+      // 4. ПЕРЕВІРКА НА БЕКТИКИ (тепер вона запускається ТІЛЬКИ для звичайного тексту)
       const backticks = (line.match(/`/g) || []).length;
       if (backticks % 2 !== 0) {
         issues.push({
-          line: i + 1,
+          line: lineNumber,
           type: "unmatched_backticks",
-          message: "Unmatched backticks",
+          message: "Unmatched backticks (odd number of backticks found)",
         });
       }
+    }
+    
+    // 5. ОПЦІЙНО: Перевірка, чи не закінчився файл у блоці коду
+    if (inCodeBlock) {
+         issues.push({
+             line: lines.length,
+             type: "unclosed_code_block",
+             message: "Document ended inside an unclosed code block fence.",
+         });
     }
 
     return issues;
