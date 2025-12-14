@@ -245,19 +245,26 @@ class CLI {
 
     console.log(`Watching: ${options.input}`);
 
+    let timer = null;
+    const debounceDelay = 100;
+
     const watchFile = () => {
       fs.watch(options.input, (eventType) => {
         if (eventType === "change") {
-          try {
-            const markdown = fs.readFileSync(options.input, "utf-8");
-            const output =
-              options.output || options.input.replace(/\.md$/, ".html");
-            const result = this.parser.parse(markdown);
-            fs.writeFileSync(output, result, "utf-8");
-            console.log(`✓ Updated: ${new Date().toLocaleTimeString()}`);
-          } catch (error) {
-            console.error(`Error: ${error.message}`);
-          }
+          clearTimeout(timer);
+
+          timer = setTimeout(() => {
+            try {
+              const markdown = fs.readFileSync(options.input, "utf-8");
+              const output =
+                options.output || options.input.replace(/\.md$/, ".html");
+              const result = this.parser.parse(markdown);
+              fs.writeFileSync(output, result, "utf-8");
+              console.log(`✓ Updated: ${new Date().toLocaleTimeString()}`);
+            } catch (error) {
+              console.error(`Error: ${error.message}`);
+            }
+          }, debounceDelay);
         }
       });
     };
