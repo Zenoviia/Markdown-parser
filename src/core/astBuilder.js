@@ -706,42 +706,11 @@ class ASTBuilder {
   generateTableOfContents(ast) {
     const headings = this.extractHeadings(ast);
     const toc = [];
-    let currentLevel = 0;
-    let currentParent = null;
+
+    const virtualRoot = { level: 0, items: toc };
+    const stack = [virtualRoot];
 
     for (const heading of headings) {
-      const level = heading.level;
-
-      if (level > currentLevel) {
-        for (let i = currentLevel; i < level; i++) {
-          if (currentParent) {
-            currentParent.children = currentParent.children || [];
-            const newParent = {
-              level: i + 1,
-              items: [],
-            };
-            currentParent.children.push(newParent);
-            currentParent = newParent;
-          } else {
-            currentParent = {
-              level: i + 1,
-              items: [],
-            };
-            toc.push(currentParent);
-          }
-        }
-      } else if (level < currentLevel) {
-        // Перейти на вищий рівень
-        let parent = null;
-        for (let item of toc) {
-          if (this.findParentAtLevel(item, level)) {
-            parent = this.findParentAtLevel(item, level);
-            break;
-          }
-        }
-        currentParent = parent || toc[toc.length - 1];
-      }
-
       const item = {
         text: heading.text,
         id: heading.id,
@@ -749,11 +718,18 @@ class ASTBuilder {
         items: [],
       };
 
-      if (currentParent && currentParent.items) {
-        currentParent.items.push(item);
+      while (
+        stack.length > 1 &&
+        heading.level <= stack[stack.length - 1].level
+      ) {
+        stack.pop();
       }
 
-      currentLevel = level;
+      const parent = stack[stack.length - 1];
+
+      parent.items.push(item);
+
+      stack.push(item);
     }
 
     return toc;
