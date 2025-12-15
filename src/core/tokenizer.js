@@ -20,7 +20,7 @@ class Tokenizer {
    * @returns {object} Правила блокових елементів
    */
   initBlockRules() {
-    return { 
+    return {
       // Горизонтальна лінія
       hr: /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})(?:\n+|$)/,
 

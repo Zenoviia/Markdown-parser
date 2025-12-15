@@ -22,6 +22,100 @@ describe("Tokenizer", () => {
       expect(headings[1].level).toBe(2);
     });
 
+    describe("All Heading Levels (H1-H6)", () => {
+      test("tokenizes H1 heading", () => {
+        const markdown = "# H1 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(1);
+        expect(headings[0].text).toBe("H1 Heading");
+      });
+
+      test("tokenizes H2 heading", () => {
+        const markdown = "## H2 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(2);
+        expect(headings[0].text).toBe("H2 Heading");
+      });
+
+      test("tokenizes H3 heading", () => {
+        const markdown = "### H3 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(3);
+        expect(headings[0].text).toBe("H3 Heading");
+      });
+
+      test("tokenizes H4 heading", () => {
+        const markdown = "#### H4 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(4);
+        expect(headings[0].text).toBe("H4 Heading");
+      });
+
+      test("tokenizes H5 heading", () => {
+        const markdown = "##### H5 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(5);
+        expect(headings[0].text).toBe("H5 Heading");
+      });
+
+      test("tokenizes H6 heading", () => {
+        const markdown = "###### H6 Heading";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(6);
+        expect(headings[0].text).toBe("H6 Heading");
+      });
+
+      test("does not tokenize H7 as heading", () => {
+        const markdown = "####### H7 (not a heading)";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(0);
+      });
+
+      test("tokenizes all heading levels together", () => {
+        const markdown = "# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(6);
+        expect(headings[0].level).toBe(1);
+        expect(headings[1].level).toBe(2);
+        expect(headings[2].level).toBe(3);
+        expect(headings[3].level).toBe(4);
+        expect(headings[4].level).toBe(5);
+        expect(headings[5].level).toBe(6);
+      });
+
+      test("heading with trailing hashes", () => {
+        const markdown = "# H1 Heading #";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(1);
+        expect(headings[0].text).toBe("H1 Heading");
+      });
+
+      test("heading with multiple trailing hashes", () => {
+        const markdown = "### H3 Heading ###";
+        const tokens = tokenizer.tokenize(markdown);
+        const headings = tokens.filter((t) => t.type === "heading");
+        expect(headings.length).toBe(1);
+        expect(headings[0].level).toBe(3);
+        expect(headings[0].text).toBe("H3 Heading");
+      });
+    });
+
     test("tokenizes paragraphs", () => {
       const markdown = "First paragraph.\n\nSecond paragraph.";
       const tokens = tokenizer.tokenize(markdown);
