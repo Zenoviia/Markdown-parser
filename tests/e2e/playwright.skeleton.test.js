@@ -123,7 +123,14 @@ describe("E2E Tests - REST API Endpoints", () => {
 
   afterAll(() => {
     if (serverProcess) {
-      serverProcess.kill();
+      serverProcess.kill("SIGTERM");
+      let forceKillTimeout = setTimeout(() => {
+        if (serverProcess && !serverProcess.killed) {
+          serverProcess.kill("SIGKILL");
+        }
+      }, 2000);
+
+      serverProcess.on("exit", () => clearTimeout(forceKillTimeout));
       serverProcess = null;
     }
   });
