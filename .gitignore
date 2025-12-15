@@ -93,6 +93,14 @@ benchmarks/results/
 scripts/*.tmp
 
 # =========================
+# Генеровані звіти (JSON, CSV)
+# =========================
+reports/*.json
+reports/*.csv
+reports/archive/
+!reports/README.md
+
+# =========================
 # Конфіги з особистими даними (якщо будуть)
 # =========================
 .env
