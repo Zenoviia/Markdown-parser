@@ -2,7 +2,7 @@
 
 ## System Design
 
-The Markdown Parser is built on a three-stage pipeline architecture:
+The Markdown Parser is built on a comprehensive architecture with a three-stage pipeline core, supplemented by utility, API, and server layers:
 
 ```
 Markdown Input
@@ -14,7 +14,18 @@ Markdown Input
 [Renderer] → Output (HTML/Markdown/Custom)
      ↓
 [Plugins] → Transform throughout pipeline
+     ↓
+[Public API] & [HTTP Server] & [CLI] → Multiple consumption patterns
+     ↓
+Utils & Utilities → Support layer
 ```
+
+**Key Layers:**
+
+- **Core Pipeline**: Tokenizer → AST Builder → Renderer
+- **Extensibility**: Plugin System at every stage
+- **Consumption**: API (programmatic), HTTP Server (REST), CLI (command-line)
+- **Infrastructure**: Utils module, Server setup, Configuration management
 
 ## Core Components
 
@@ -348,6 +359,157 @@ markdown-parser toc README.md --output TOC.md
 markdown-parser watch src/ --output dist/
 ```
 
+### 8. HTTP Server (`src/server.js`)
+
+Express-based HTTP server providing REST API endpoints for Markdown processing.
+
+**Responsibilities:**
+
+- Provide REST API endpoints for programmatic access
+- Implement security headers (Helmet.js)
+- Enforce rate limiting and body size limits
+- Handle JSON request/response validation
+- CORS support for browser-based clients
+
+**Key Endpoints:**
+
+```javascript
+POST /parse
+  Request:  { "markdown": "# Title" }
+  Response: { "ast": { type: "root", children: [...] } }
+
+POST /convert
+  Request:  { "markdown": "# Title" }
+  Response: { "html": "<h1>Title</h1>" }
+
+POST /validate
+  Request:  { "markdown": "# Title" }
+  Response: { "valid": true, "issues": [] }
+
+POST /stats
+  Request:  { "markdown": "# Title\n\nContent" }
+  Response: { "lines": 2, "headings": 1, ... }
+
+GET /health
+  Response: { "status": "ok" }
+```
+
+**Security Features:**
+
+- **Helmet.js** - Sets HTTP security headers
+- **Rate Limiting** - Configurable via `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS`
+- **Body Size Limiting** - Configurable via `BODY_SIZE_LIMIT` (default: 100kb)
+- **Content-Type Validation** - POST requests must have `application/json`
+- **Trust Proxy** - Configurable via `TRUST_PROXY` for reverse proxies
+- **Input Validation** - All requests validated before processing
+
+**Configuration (Environment Variables):**
+
+```bash
+PORT=3000                          # Server port (default: 3000)
+BODY_SIZE_LIMIT=100kb              # Max request size (default: 100kb)
+RATE_LIMIT_MAX=100                 # Max requests per window (default: 100)
+RATE_LIMIT_WINDOW_MS=60000         # Rate limit window in ms (default: 60s)
+TRUST_PROXY=1                      # Trust proxy headers (0 or 1)
+```
+
+**Factory Function:**
+
+```javascript
+const { createServer } = require("./server");
+const app = createServer();
+const server = app.listen(3000);
+```
+
+### 9. Server Starter (`src/server.start.js`)
+
+Standalone script to launch the HTTP server.
+
+**Responsibilities:**
+
+- Bootstrap Express server on configured port
+- Handle graceful shutdown (SIGINT)
+- Provide server lifecycle management
+
+**Usage:**
+
+```bash
+node src/server.start.js
+# Server listening on http://localhost:3000
+
+# With custom port:
+PORT=5000 node src/server.start.js
+# Server listening on http://localhost:5000
+```
+
+**Graceful Shutdown:**
+
+- Listens for SIGINT (Ctrl+C)
+- Closes server cleanly
+- Exits process with code 0
+
+### 10. Utils Module (`src/utils.js`)
+
+Utility functions for text processing, validation, and data manipulation.
+
+**Responsibilities:**
+
+- HTML/Markdown escaping and unescaping
+- URL and email validation
+- String normalization and transformation
+- Array and object manipulation
+- Regular expression utilities
+
+**Key Methods:**
+
+```javascript
+// HTML utilities
+Utils.escapeHtml(text); // Escape HTML special chars
+Utils.unescapeHtml(text); // Unescape HTML entities
+Utils.escapeRegex(str); // Escape regex special chars
+
+// Validation
+Utils.isUrl(str); // Check if valid URL
+Utils.isEmail(str); // Check if valid email
+Utils.containsHtmlTags(str); // Detect HTML tags
+
+// String utilities
+Utils.capitalize(str); // Capitalize first letter
+Utils.slugify(str); // Convert to URL slug
+Utils.normalizeWhitespace(str); // Normalize spaces
+Utils.dedent(str); // Remove common leading whitespace
+
+// Array utilities
+Utils.chunk(arr, size); // Split array into chunks
+Utils.unique(arr); // Get unique elements
+Utils.flatten(arr); // Flatten nested arrays
+Utils.groupBy(arr, fn); // Group array elements
+
+// Object utilities
+Utils.clone(obj); // Deep clone object
+Utils.merge(...objects); // Merge objects
+Utils.pick(obj, keys); // Pick specific keys
+```
+
+**Implementation Example:**
+
+```javascript
+const Utils = require("./utils");
+
+// HTML escaping
+const escaped = Utils.escapeHtml('<script>alert("XSS")</script>');
+// Result: &lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;
+
+// Validation
+if (Utils.isUrl("https://example.com")) {
+  console.log("Valid URL");
+}
+
+// String transformation
+const slug = Utils.slugify("Hello World!");
+// Result: 'hello-world'
+```
+
 ## Data Flow
 
 ### Parsing Flow
@@ -390,6 +552,8 @@ Input → [beforeTokenize] → Tokenizer → [afterTokenize]
 2. **ValidationError** - Document structure issues
 3. **RenderError** - Output generation failures
 4. **PluginError** - Plugin execution issues
+5. **InputError** - Invalid input parameters
+6. **ResourceError** - Resource limits exceeded
 
 ### Error Recovery
 
@@ -397,6 +561,9 @@ Input → [beforeTokenize] → Tokenizer → [afterTokenize]
 - Logs warnings for recoverable issues
 - Throws exceptions for critical failures
 - Plugins can suppress or modify errors
+- HTTP server returns appropriate HTTP status codes
+
+**Library Usage:**
 
 ```javascript
 try {
@@ -407,6 +574,30 @@ try {
   } else if (error.type === "SyntaxError") {
     console.error("Cannot parse:", error.message);
   }
+}
+```
+
+**HTTP Server Responses:**
+
+```javascript
+// 400 Bad Request
+{
+  "error": "markdown required"
+}
+
+// 400 Content-Type error
+{
+  "error": "Content-Type must be application/json"
+}
+
+// 429 Too Many Requests (rate limit)
+{
+  "error": "Too many requests, slow down"
+}
+
+// 500 Server Error
+{
+  "error": "failed to parse markdown"
 }
 ```
 
@@ -504,26 +695,59 @@ parser.setTokenizer(new CustomTokenizer());
 ## Dependency Graph
 
 ```
-index.js (entry point)
+index.js (main entry point - library usage)
 ├── api/index.js (public API)
 │   ├── core/parser.js
 │   ├── renderers/htmlRenderer.js
 │   ├── renderers/markdownRenderer.js
+│   ├── plugins/pluginSystem.js
+│   ├── core/tokenizer.js
+│   └── core/astBuilder.js
+├── cli/index.js (command-line interface)
+│   ├── core/parser.js
+│   ├── renderers/htmlRenderer.js
+│   ├── renderers/markdownRenderer.js
 │   └── plugins/pluginSystem.js
-├── cli/index.js
-│   └── core/parser.js
+├── server.js (HTTP REST API server)
+│   ├── api/index.js
+│   ├── express (external)
+│   ├── helmet (external)
+│   └── express-rate-limit (external)
+├── server.start.js (server bootstrap)
+│   └── server.js
+├── utils.js (utility functions)
+│   └── (no internal dependencies)
 └── core/
-    ├── parser.js
+    ├── parser.js (main orchestrator)
     │   ├── tokenizer.js
     │   ├── astBuilder.js
     │   ├── plugins/pluginSystem.js
-    │   └── renderers/
+    │   ├── renderers/htmlRenderer.js
+    │   ├── renderers/markdownRenderer.js
+    │   └── utils.js
     ├── tokenizer.js
+    │   └── utils.js
     ├── astBuilder.js
+    │   └── utils.js
     └── renderers/
         ├── htmlRenderer.js
+        │   └── utils.js
         └── markdownRenderer.js
+            └── utils.js
+
+plugins/pluginSystem.js
+└── (extensible - plugins loaded dynamically)
 ```
+
+**Dependency Layers:**
+
+1. **Foundation**: `utils.js` (no dependencies)
+2. **Core Pipeline**: `tokenizer.js`, `astBuilder.js`, renderers
+3. **Orchestration**: `parser.js` (coordinates all components)
+4. **Plugins**: `pluginSystem.js` (extends core)
+5. **Interfaces**: `api/index.js`, `cli/index.js`
+6. **Infrastructure**: `server.js`, `server.start.js`
+7. **Entry Point**: `index.js` (exports all public APIs)
 
 ## Configuration
 
@@ -565,11 +789,64 @@ See [TESTING.md](./TESTING.md) for comprehensive testing strategy including:
 
 ## Security Considerations
 
+### Core Security
+
 1. **Input Validation** - Validate all Markdown input
-2. **HTML Escaping** - Prevent XSS via proper escaping
-3. **Resource Limits** - Enforce document size limits
+2. **HTML Escaping** - Prevent XSS via proper escaping (Utils.escapeHtml)
+3. **Resource Limits** - Enforce document size limits (maxDocumentSize)
 4. **Plugin Isolation** - Run plugins in controlled environment
 5. **Error Messages** - Don't leak internal details
+
+### HTTP Server Security
+
+1. **Helmet.js** - Automatically sets security HTTP headers:
+
+   - Content-Security-Policy
+   - X-Frame-Options
+   - X-Content-Type-Options
+   - Strict-Transport-Security
+   - X-XSS-Protection
+
+2. **Rate Limiting** - Prevent DoS attacks:
+
+   - Configurable requests per window
+   - Returns 429 Too Many Requests
+   - Applies globally and per-endpoint
+
+3. **Body Size Limiting** - Prevent memory exhaustion:
+
+   - Default: 100KB per request
+   - Configurable via BODY_SIZE_LIMIT
+   - Rejects oversized payloads
+
+4. **Content-Type Validation** - Prevent header injection:
+
+   - POST requests must specify `application/json`
+   - Returns 400 Bad Request for mismatched content
+
+5. **CORS Control** - Manage cross-origin requests:
+
+   - Allows specified origins
+   - Configurable allowed methods and headers
+   - Handles OPTIONS preflight requests
+
+6. **Proxy Trust** - Handle reverse proxies safely:
+   - Only trust proxy headers when TRUST_PROXY=1
+   - Prevents IP spoofing in rate limiting
+
+**Security Best Practices:**
+
+```bash
+# Set strong rate limits in production
+RATE_LIMIT_MAX=50
+RATE_LIMIT_WINDOW_MS=60000
+
+# Limit document size
+BODY_SIZE_LIMIT=10kb
+
+# Enable proxy trust only if behind reverse proxy
+TRUST_PROXY=1
+```
 
 ## Maintenance & Evolution
 
