@@ -1,12 +1,3 @@
-/**
- * E2E Tests - REST API Endpoints
- * Tests REST API endpoints via HTTP
- *
- * To run these tests:
- * 1. Start server: npm start
- * 2. Run tests: npm run test:e2e
- */
-
 const http = require("http");
 const { spawn } = require("child_process");
 const net = require("net");
@@ -202,7 +193,7 @@ Paragraph with **bold** and *italic*.
         const response = await makeRequest("/convert", { markdown });
         expect(response.status).toBe(200);
         expect(response.data).toHaveProperty("html");
-        expect(response.data.html).toContain("h1");
+        expect(response.data.html).toMatch(/<h1[^>]*>Hello World<\/h1>/);
       } catch (error) {
         if (error.code === "ECONNREFUSED") {
           console.warn("Server not running");
@@ -218,8 +209,8 @@ Paragraph with **bold** and *italic*.
       try {
         const response = await makeRequest("/convert", { markdown });
         const html = response.data.html;
-        expect(html).toContain("strong") || expect(html).toContain("b");
-        expect(html).toContain("em") || expect(html).toContain("i");
+        expect(html).toMatch(/<(strong|b)>bold<\/(strong|b)>/);
+        expect(html).toMatch(/<(em|i)>italic<\/(em|i)>/);
       } catch (error) {
         if (error.code !== "ECONNREFUSED") throw error;
       }
@@ -231,7 +222,9 @@ Paragraph with **bold** and *italic*.
       try {
         const response = await makeRequest("/convert", { markdown });
         const html = response.data.html;
-        expect(html).toContain("<li>") || expect(html).toContain("<ul>");
+        expect(html).toMatch(
+          /<ul[^>]*>.*<li[^>]*>Item 1<\/li>.*<li[^>]*>Item 2<\/li>.*<\/ul>/s
+        );
       } catch (error) {
         if (error.code !== "ECONNREFUSED") throw error;
       }
@@ -243,7 +236,9 @@ Paragraph with **bold** and *italic*.
       try {
         const response = await makeRequest("/convert", { markdown });
         const html = response.data.html;
-        expect(html).toContain("<a") || expect(html).toContain("href=");
+        expect(html).toMatch(
+          /<a[^>]+href=['"]https:\/\/example\.com['"][^>]*>Example<\/a>/
+        );
       } catch (error) {
         if (error.code !== "ECONNREFUSED") throw error;
       }
@@ -287,8 +282,10 @@ Paragraph with **bold** and *italic*.
         const response = await makeRequest("/statistics", { markdown });
         expect(response.status).toBe(200);
         expect(response.data).toHaveProperty("lines");
-        expect(response.data).toHaveProperty("characters") ||
-          expect(response.data).toHaveProperty("nodes");
+        expect(
+          response.data.hasOwnProperty("characters") ||
+            response.data.hasOwnProperty("nodes")
+        ).toBe(true);
       } catch (error) {
         if (error.code === "ECONNREFUSED") {
           console.warn("Server not running");
