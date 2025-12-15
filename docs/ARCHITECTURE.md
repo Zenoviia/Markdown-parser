@@ -155,25 +155,61 @@ normalizeMarkdown(markdown); // Normalize formatting
 
 ### 4. Parser (`src/core/parser.js`)
 
-Main orchestrator combining all components.
+Main orchestrator combining all components with integrated advanced features.
 
 **Responsibilities:**
 
 - Coordinate tokenizer → AST builder → renderer pipeline
-- Manage plugins
-- Validate input/output
-- Calculate statistics
-- Handle errors
+- Manage plugins and extensions
+- Validate input/output and document formatting
+- Calculate statistics and perform document analysis
+- Handle caching, hooks, and line manipulation
+- Provide text search, analysis, and comparison utilities
 
 **Key Methods:**
+
+**Core Parsing:**
 
 ```javascript
 parse(markdown); // Markdown → HTML
 parseToAST(markdown); // Markdown → AST
-renderAST(ast, format); // AST → format
+parseWithRenderer(markdown, renderer); // Custom renderer
 validate(markdown); // Check validity
-getStatistics(markdown); // Calculate metrics
-use(plugin); // Register plugin
+```
+
+**Advanced Features (formerly in AdvancedParser):**
+
+```javascript
+// Caching
+parseWithCache(markdown, useCache); // With caching
+setCacheEntry(key, value);
+getCacheEntry(key);
+clearCache();
+
+// Hook System
+on(event, callback); // Register hooks (beforeParse, afterParse, onError)
+emit(event, data);
+
+// Text Search & Analysis
+search(markdown, pattern); // Find pattern matches
+replace(markdown, searchValue, replaceValue);
+analyzeLines(markdown); // Get line metadata
+getLineStatistics(markdown); // Line-level stats
+
+// Document Formatting
+format(markdown, options); // Format document
+compare(doc1, doc2); // Compare documents
+findDuplicates(markdown); // Find duplicate lines
+
+// Line Manipulation
+sortLines(markdown, compareFn); // Sort lines
+filterLines(markdown, filterFn); // Filter lines
+mapLines(markdown, mapFn); // Transform lines
+
+// Format Validation
+validateFormatting(markdown); // Check syntax issues
+getMostCommonWords(markdown, limit); // Word frequency
+getVocabulary(markdown); // Get unique words
 ```
 
 **Statistics:**
@@ -193,6 +229,23 @@ use(plugin); // Register plugin
   estimatedReadTime: number, // in seconds
 }
 ```
+
+**Design Decision: Unified Parser**
+
+Previously, functionality was split between `MarkdownParser` (core parsing) and `AdvancedParser` (validation, analysis, formatting). This caused:
+
+- Maintenance burden (two parallel implementations)
+- Inconsistent behavior (bug in one parser affected only one code path)
+- Confusion about which parser to use
+
+**Solution:** All AdvancedParser functionality has been merged into MarkdownParser. The class now provides:
+
+- Single point of maintenance
+- Consistent behavior across all parsing paths
+- Unified API for all Markdown processing tasks
+- No breaking changes (all methods are additive)
+
+Related tests moved from `tests/unit/advancedParser.test.js` to `tests/unit/parser.advanced.test.js`.
 
 ### 5. Plugin System (`src/plugins/pluginSystem.js`)
 
