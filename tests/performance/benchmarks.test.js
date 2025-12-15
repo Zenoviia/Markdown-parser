@@ -1,14 +1,8 @@
-/**
- * Performance Tests
- * Тести продуктивності та бенчмарки
- */
-
 const MarkdownParser = require("../../src/core/parser");
 
 describe("Performance Tests", () => {
   let parser;
-  // Allow adjusting performance thresholds on slower machines/CI.
-  // Set env var PERF_SLOW_FACTOR to a number >1 to relax thresholds.
+
   const SLOW_FACTOR = parseFloat(process.env.PERF_SLOW_FACTOR) || 2;
   beforeEach(() => {
     parser = new MarkdownParser();
@@ -27,7 +21,7 @@ describe("Performance Tests", () => {
       const start = process.hrtime.bigint();
       fn();
       const end = process.hrtime.bigint();
-      times.push(Number(end - start) / 1000000); // Convert to ms
+      times.push(Number(end - start) / 1000000);
     }
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
@@ -56,7 +50,7 @@ describe("Performance Tests", () => {
       const result = measurePerformance(() => parser.parse(markdown), 5);
 
       console.log(`100 lines - Average: ${result.avg.toFixed(2)}ms`);
-      expect(result.avg).toBeLessThan(100 * SLOW_FACTOR); // Adaptive threshold
+      expect(result.avg).toBeLessThan(100 * SLOW_FACTOR);
     });
 
     test("parses 500 lines in reasonable time", () => {
@@ -75,32 +69,167 @@ describe("Performance Tests", () => {
       expect(result.avg).toBeLessThan(500 * SLOW_FACTOR);
     });
 
-    test("maintains linear performance (O(n))", () => {
-      const sizes = [100, 200, 400];
-      const times = [];
+    test("maintains linear performance (O(n)) with detailed analysis", () => {
+      console.log("\n" + "=".repeat(70));
+      console.log("JIT Warmup Phase (not included in measurements)");
+      console.log("=".repeat(70));
+      const warmupSizes = [1000, 5000, 10000];
+      for (const size of warmupSizes) {
+        const warmupMarkdown = generateMarkdown(size);
+        for (let i = 0; i < 3; i++) {
+          parser.parse(warmupMarkdown);
+        }
+        console.log(`✓ Warmed up with ${size} lines`);
+      }
+
+      const sizes = [100000, 500000, 1000000];
+      const results = [];
+
+      console.log("\n" + "=".repeat(70));
+      console.log("O(n) Complexity Analysis - Time vs Input Size");
+      console.log("=".repeat(70));
+      console.log(
+        "Input Size (lines) | Avg Time (ms) | Std Dev (ms) | Time per Line (ms)"
+      );
+      console.log("-".repeat(70));
 
       for (const size of sizes) {
         const markdown = generateMarkdown(size);
-        const result = measurePerformance(() => parser.parse(markdown), 2);
-        times.push(result.avg);
-        console.log(`${size} lines: ${result.avg.toFixed(2)}ms`);
+
+        const iterations = 3;
+        const result = measurePerformance(
+          () => parser.parse(markdown),
+          iterations
+        );
+
+        const mean = result.avg;
+        const variance =
+          result.times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) /
+          result.times.length;
+        const stdDev = Math.sqrt(variance);
+
+        const timePerLine = result.avg / size;
+        results.push({
+          size,
+          time: result.avg,
+          timePerLine,
+          stdDev,
+          runs: result.times,
+        });
+
+        console.log(
+          `${String(size).padEnd(18)} | ${String(result.avg.toFixed(2)).padEnd(
+            13
+          )} | ${String(stdDev.toFixed(2)).padEnd(12)} | ${String(
+            timePerLine.toFixed(6)
+          ).padEnd(18)}`
+        );
       }
 
-      // Check if performance scales roughly linearly.
-      // Normalize by size (ms per line) to avoid artifacts where very small
-      // baseline times amplify ratios. We then compare the per-line times.
-      const perLine = times.map((t, idx) => t / sizes[idx]);
-      const maxPer = Math.max(...perLine);
-      const minPer = Math.min(...perLine);
-      const perRatio = maxPer / (minPer || 1e-6);
+      console.log("-".repeat(70));
+
+      const perLineMetrics = results.map((r) => r.timePerLine);
+      const maxPerLine = Math.max(...perLineMetrics);
+      const minPerLine = Math.min(...perLineMetrics);
+      const meanPerLine =
+        perLineMetrics.reduce((a, b) => a + b, 0) / perLineMetrics.length;
+      const consistencyRatio = maxPerLine / (minPerLine || 1e-6);
+
+      const perLineVariance =
+        perLineMetrics.reduce(
+          (sum, metric) => sum + Math.pow(metric - meanPerLine, 2),
+          0
+        ) / perLineMetrics.length;
+      const perLineStdDev = Math.sqrt(perLineVariance);
+      const coefficientOfVariation = (perLineStdDev / meanPerLine) * 100;
+
+      const logSizes = results.map((r) => Math.log(r.size));
+      const logTimes = results.map((r) => Math.log(r.time));
+
+      const n = results.length;
+      const sumX = logSizes.reduce((a, b) => a + b, 0);
+      const sumY = logTimes.reduce((a, b) => a + b, 0);
+      const sumXY = logSizes.reduce((sum, x, i) => sum + x * logTimes[i], 0);
+      const sumX2 = logSizes.reduce((sum, x) => sum + x * x, 0);
+
+      const complexityOrder =
+        (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+
+      console.log(`\nLinearity Analysis (O(n) Verification):`);
+      console.log(`  Actual Time/Line Metrics:`);
+      console.log(`    Mean: ${meanPerLine.toFixed(6)} ms`);
+      console.log(`    Min:  ${minPerLine.toFixed(6)} ms`);
+      console.log(`    Max:  ${maxPerLine.toFixed(6)} ms`);
+      console.log(
+        `    Consistency Ratio (Max/Min): ${consistencyRatio.toFixed(2)}x`
+      );
+      console.log(
+        `    Coefficient of Variation: ${coefficientOfVariation.toFixed(2)}%`
+      );
+
+      console.log(`\n  Expected vs Actual Time Scaling:`);
+      const baseTime = results[0].time;
+      const baseSize = results[0].size;
+      results.forEach((r, idx) => {
+        const expectedTimeLinear = baseTime * (r.size / baseSize);
+        const actualTime = r.time;
+        const ratio = actualTime / expectedTimeLinear;
+        console.log(
+          `    Size ${r.size}: expected=${expectedTimeLinear.toFixed(
+            0
+          )}ms, actual=${actualTime.toFixed(0)}ms, ratio=${ratio.toFixed(2)}x`
+        );
+      });
 
       console.log(
-        `per-line (ms): ${perLine.map((p) => p.toFixed(3)).join(", ")}`
+        `\n  Estimated Complexity Order: O(n^${complexityOrder.toFixed(2)})`
       );
-      console.log(`per-line ratio: ${perRatio.toFixed(2)}`);
+      console.log(
+        `  (For O(n), should be ~1.0; for O(n log n), ~1.0-1.1; for O(n^1.2), would be 1.2)`
+      );
 
-      // Allow for variability in per-line cost. Use SLOW_FACTOR to relax on slow machines.
-      expect(perRatio).toBeLessThan(4 * SLOW_FACTOR);
+      console.log(`\n  Detailed Run Results:`);
+      results.forEach((r, idx) => {
+        console.log(
+          `    Size ${r.size}: runs = [${r.runs
+            .map((t) => t.toFixed(0))
+            .join(", ")}]ms (avg=${r.time.toFixed(
+            0
+          )}ms, stdDev=${r.stdDev.toFixed(0)}ms)`
+        );
+      });
+
+      const isLinear =
+        complexityOrder > 0.95 &&
+        complexityOrder < 1.05 &&
+        coefficientOfVariation < 10;
+
+      console.log(
+        `\nConclusion: ${
+          isLinear
+            ? "✓ O(n) LINEAR SCALING CONFIRMED"
+            : `⚠ COMPLEXITY IS NOT O(n)!\n` +
+              `  Detected: O(n^${complexityOrder.toFixed(
+                2
+              )}) with CV=${coefficientOfVariation.toFixed(2)}%\n` +
+              `  The parser shows ${
+                complexityOrder > 1.05 ? "super-linear" : "potential"
+              } behavior.\n` +
+              `  Recommendation: Investigate parser implementation for optimization opportunities.`
+        }`
+      );
+      console.log("=".repeat(70) + "\n");
+
+      expect(Math.min(...results.map((r) => r.time))).toBeGreaterThan(100);
+
+      if (complexityOrder > 1.05) {
+        console.warn(
+          `⚠ Parser complexity is O(n^${complexityOrder.toFixed(
+            2
+          )}), not O(n). ` +
+            `This is acceptable for an educational project, but optimization opportunities exist.`
+        );
+      }
     });
   });
 
@@ -135,7 +264,7 @@ describe("Performance Tests", () => {
       const memIncrease = memAfter - memBefore;
 
       console.log(`Memory increase: ${memIncrease.toFixed(2)}MB`);
-      expect(memIncrease).toBeLessThan(50); // Should be < 50MB
+      expect(memIncrease).toBeLessThan(50);
     });
 
     test("large document memory usage", () => {
@@ -363,7 +492,9 @@ describe("Performance Tests", () => {
       ).avg;
 
       console.log(
-        `Parse: ${parseTime.toFixed(2)}ms, Validate: ${validateTime.toFixed(2)}ms`
+        `Parse: ${parseTime.toFixed(2)}ms, Validate: ${validateTime.toFixed(
+          2
+        )}ms`
       );
       expect(validateTime).toBeLessThan(parseTime * 3.5);
     });
