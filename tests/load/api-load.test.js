@@ -1,13 +1,6 @@
-/**
- * Load Tests
- * Тести навантаження для REST API (артилерія/k6 симуляція)
- */
-
 const MarkdownParser = require("../../src/core/parser");
+const ReportGenerator = require("../../src/utils/reportGenerator");
 
-// Adaptive timing for slow hardware
-// Increase default tolerance to avoid false negatives on slower machines
-// Raised default to 8 to give more headroom on very slow CI/workstation envs
 const SLOW_FACTOR = parseFloat(process.env.PERF_SLOW_FACTOR) || 8;
 
 /**
@@ -53,7 +46,6 @@ class MockAPIServer {
     }
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length || 0;
-    // Use loop to avoid stack overflow with large arrays
     let min = times[0];
     let max = times[0];
     for (let i = 1; i < times.length; i++) {
@@ -96,6 +88,11 @@ class MockAPIServer {
 
 describe("Load Tests - REST API", () => {
   let server;
+  let reporter;
+
+  beforeAll(() => {
+    reporter = new ReportGenerator();
+  });
 
   beforeEach(() => {
     server = new MockAPIServer();
@@ -111,6 +108,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("100 sequential requests:", metrics);
+      reporter.saveMetricsJson("sequential-100", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-100", metrics);
 
       expect(metrics.successfulRequests).toBe(100);
       expect(metrics.failedRequests).toBe(0);
@@ -126,6 +125,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("500 sequential requests:", metrics);
+      reporter.saveMetricsJson("sequential-500", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-500", metrics);
 
       expect(metrics.successfulRequests).toBe(500);
       expect(metrics.failedRequests).toBe(0);
@@ -140,6 +141,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("1000 sequential requests:", metrics);
+      reporter.saveMetricsJson("sequential-1000", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-1000", metrics);
 
       expect(metrics.successfulRequests).toBe(1000);
       expect(metrics.failedRequests).toBe(0);
@@ -159,6 +162,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("500 concurrent requests:", metrics);
+      reporter.saveMetricsJson("concurrent-500", metrics);
+      reporter.appendMetricsToCSV("load-tests", "concurrent-500", metrics);
 
       expect(metrics.successfulRequests).toBeGreaterThan(450);
       expect(metrics.avgLatency).toBeLessThan(200);
@@ -176,6 +181,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("1000 concurrent requests:", metrics);
+      reporter.saveMetricsJson("concurrent-1000", metrics);
+      reporter.appendMetricsToCSV("load-tests", "concurrent-1000", metrics);
 
       expect(metrics.successfulRequests).toBeGreaterThan(900);
     });
@@ -193,6 +200,9 @@ describe("Load Tests - REST API", () => {
       }
 
       console.log(`Throughput (small doc): ${count} req/sec`);
+      const metrics = server.getMetrics();
+      reporter.saveMetricsJson("throughput-small", metrics);
+      reporter.appendMetricsToCSV("load-tests", "throughput-small", metrics);
       expect(count).toBeGreaterThan(100);
     });
 
@@ -211,6 +221,9 @@ describe("Load Tests - REST API", () => {
       }
 
       console.log(`Throughput (medium doc): ${count} req/sec`);
+      const metrics = server.getMetrics();
+      reporter.saveMetricsJson("throughput-medium", metrics);
+      reporter.appendMetricsToCSV("load-tests", "throughput-medium", metrics);
       expect(count).toBeGreaterThan(50);
     });
 
@@ -229,6 +242,9 @@ describe("Load Tests - REST API", () => {
       }
 
       console.log(`Throughput (large doc): ${count} req/sec`);
+      const metrics = server.getMetrics();
+      reporter.saveMetricsJson("throughput-large", metrics);
+      reporter.appendMetricsToCSV("load-tests", "throughput-large", metrics);
       expect(count).toBeGreaterThan(10);
     });
   });
@@ -246,6 +262,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log(`P95 Latency: ${metrics.p95Latency}ms`);
+      reporter.saveMetricsJson("latency-p95", metrics);
+      reporter.appendMetricsToCSV("load-tests", "latency-p95", metrics);
 
       expect(metrics.p95Latency).toBeLessThan(200);
     });
@@ -262,6 +280,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log(`P99 Latency: ${metrics.p99Latency}ms`);
+      reporter.saveMetricsJson("latency-p99", metrics);
+      reporter.appendMetricsToCSV("load-tests", "latency-p99", metrics);
 
       expect(metrics.p99Latency).toBeLessThan(500);
     });
@@ -283,16 +303,17 @@ describe("Load Tests - REST API", () => {
       }
 
       console.log("Latency by interval:", intervals);
+      reporter.saveMetricsJson("latency-stability", { intervals });
+      reporter.appendMetricsToCSV("load-tests", "latency-stability", {
+        throughput: intervals.length,
+      });
 
-      // Latency should not increase significantly (adaptive to hardware speed)
-      // Skip first interval as warm-up
       const afterWarmup = intervals.slice(1);
       const minInterval = Math.min(...afterWarmup);
       const maxInterval = Math.max(...afterWarmup);
       const increase = (maxInterval - minInterval) / minInterval;
 
-      // Allow up to 100% increase * SLOW_FACTOR on slow hardware
-      const SLOW_FACTOR = parseFloat(process.env.PERF_SLOW_FACTOR) || 8; 
+      const SLOW_FACTOR = parseFloat(process.env.PERF_SLOW_FACTOR) || 8;
     });
   });
 
@@ -300,14 +321,12 @@ describe("Load Tests - REST API", () => {
     test("recovers gracefully from spike in requests", async () => {
       const markdown = "# Test";
 
-      // Normal load
       for (let i = 0; i < 100; i++) {
         await server.handleConvertRequest(markdown);
       }
 
       const normalMetrics = server.getMetrics();
 
-      // Spike
       server.reset();
       const promises = [];
       for (let i = 0; i < 2000; i++) {
@@ -317,7 +336,6 @@ describe("Load Tests - REST API", () => {
 
       const spikeMetrics = server.getMetrics();
 
-      // Recovery
       server.reset();
       for (let i = 0; i < 100; i++) {
         await server.handleConvertRequest(markdown);
@@ -329,9 +347,17 @@ describe("Load Tests - REST API", () => {
       console.log("Spike:", spikeMetrics);
       console.log("Recovery:", recoveryMetrics);
 
-      // Should recover
+      reporter.saveMetricsJson("stress-spike-normal", normalMetrics);
+      reporter.saveMetricsJson("stress-spike-peak", spikeMetrics);
+      reporter.saveMetricsJson("stress-spike-recovery", recoveryMetrics);
+      reporter.appendMetricsToCSV(
+        "load-tests",
+        "stress-spike",
+        recoveryMetrics
+      );
+
       expect(recoveryMetrics.avgLatency).toBeLessThan(
-        normalMetrics.avgLatency * 5 // Allow up to 5x the normal latency for recovery
+        normalMetrics.avgLatency * 5
       );
     });
 
@@ -342,7 +368,6 @@ describe("Load Tests - REST API", () => {
 
       const promises = [];
 
-      // Mix of sizes
       for (let i = 0; i < 100; i++) {
         if (i % 3 === 0) {
           promises.push(server.handleConvertRequest(largeDoc));
@@ -357,6 +382,8 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("Mixed sizes:", metrics);
+      reporter.saveMetricsJson("stress-mixed-sizes", metrics);
+      reporter.appendMetricsToCSV("load-tests", "stress-mixed-sizes", metrics);
 
       expect(metrics.successfulRequests).toBeGreaterThan(95);
     });
@@ -380,17 +407,20 @@ describe("Load Tests - REST API", () => {
         const input = invalidInputs[i % invalidInputs.length];
         try {
           promises.push(server.handleConvertRequest(input || ""));
-        } catch {
-          // Should not throw
-        }
+        } catch {}
       }
 
       await Promise.all(promises);
 
       const metrics = server.getMetrics();
       console.log("With invalid inputs:", metrics);
+      reporter.saveMetricsJson("error-handling-invalid", metrics);
+      reporter.appendMetricsToCSV(
+        "load-tests",
+        "error-handling-invalid",
+        metrics
+      );
 
-      // Should still handle most requests
       expect(metrics.successfulRequests).toBeGreaterThan(50);
     });
   });
@@ -409,8 +439,13 @@ describe("Load Tests - REST API", () => {
       const memIncrease = memAfter - memBefore;
 
       console.log(`Memory increase: ${memIncrease.toFixed(2)}MB`);
+      reporter.saveMetricsJson("resource-memory", {
+        memoryIncreaseMB: memIncrease,
+      });
+      reporter.appendMetricsToCSV("load-tests", "resource-memory", {
+        throughput: memIncrease,
+      });
 
-      // Should not use excessive memory
       expect(memIncrease).toBeLessThan(100);
     });
 
@@ -426,6 +461,12 @@ describe("Load Tests - REST API", () => {
 
       const metrics = server.getMetrics();
       console.log("Large doc repeated:", metrics);
+      reporter.saveMetricsJson("resource-large-doc-repeated", metrics);
+      reporter.appendMetricsToCSV(
+        "load-tests",
+        "resource-large-doc-repeated",
+        metrics
+      );
 
       expect(metrics.successfulRequests).toBe(50);
       expect(metrics.failedRequests).toBe(0);
@@ -436,9 +477,9 @@ describe("Load Tests - REST API", () => {
     test("handles gradual increase in load", async () => {
       const markdown = "# Test";
       const phases = [
-        { duration: 100, rate: 10 }, // 10 req/sec for 100ms
-        { duration: 100, rate: 50 }, // 50 req/sec for 100ms
-        { duration: 100, rate: 100 }, // 100 req/sec for 100ms
+        { duration: 100, rate: 10 },
+        { duration: 100, rate: 50 },
+        { duration: 100, rate: 100 },
       ];
 
       const results = [];
@@ -456,7 +497,15 @@ describe("Load Tests - REST API", () => {
 
       console.log("Ramp up pattern:", results);
 
-      // All phases should succeed
+      results.forEach((metric, index) => {
+        reporter.saveMetricsJson(`ramp-up-phase-${index + 1}`, metric);
+        reporter.appendMetricsToCSV(
+          "load-tests",
+          `ramp-up-phase-${index + 1}`,
+          metric
+        );
+      });
+
       results.forEach((metric) => {
         expect(metric.successfulRequests).toBeGreaterThan(0);
       });
@@ -466,8 +515,8 @@ describe("Load Tests - REST API", () => {
   describe("Sustained Load", () => {
     test("maintains performance over sustained load", async () => {
       const markdown = "# Document\n\nContent";
-      const duration = 5000; // 5 seconds
-      const targetThroughput = 100; // requests per second
+      const duration = 5000;
+      const targetThroughput = 100;
       const totalRequests = (duration / 1000) * targetThroughput;
 
       const startTime = Date.now();
@@ -479,11 +528,13 @@ describe("Load Tests - REST API", () => {
       }
 
       const metrics = server.getMetrics();
-      console.log(
-        `Sustained load (5s): ${actualCount} total requests, ${(actualCount / 5).toFixed(0)} req/sec avg`
-      );
+      const message = `Sustained load (5s): ${actualCount} total requests, ${(
+        actualCount / 5
+      ).toFixed(0)} req/sec avg`;
+      console.log(message);
+      reporter.saveMetricsJson("sustained-load-5s", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sustained-load-5s", metrics);
 
-      // Should handle significant portion of target
       expect(actualCount).toBeGreaterThan(targetThroughput * 2);
       expect(metrics.avgLatency).toBeLessThan(100);
     });
