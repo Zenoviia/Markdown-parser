@@ -54,7 +54,6 @@ class Tokenizer {
       // Параграф
       paragraph: /^[^\n]+/,
 
-      // Дивний сміття
       text: /^[^\n]+/,
     };
   }
@@ -132,7 +131,6 @@ class Tokenizer {
       const line = lines[pos];
       let matched = false;
 
-      // Перевіряємо пусті рядки
       if (!line.trim()) {
         tokens.push({
           type: "blank",
@@ -143,7 +141,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо заголовки
       const headingMatch = line.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
       if (headingMatch) {
         tokens.push({
@@ -158,7 +155,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо горизонтальну лінію
       if (/^([\*\-_]\s?){3,}$/.test(line.trim())) {
         tokens.push({
           type: "hr",
@@ -170,7 +166,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо огороджений блок коду
       const fencedMatch = this.matchFencedCode(lines, pos);
       if (fencedMatch) {
         tokens.push(fencedMatch.token);
@@ -179,7 +174,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо цитату
       if (line.startsWith(">")) {
         const quoteMatch = this.matchBlockquote(lines, pos);
         if (quoteMatch) {
@@ -190,7 +184,6 @@ class Tokenizer {
         }
       }
 
-      // Перевіряємо список
       const listMatch = line.match(/^( {0,3})([*+-]|\d{1,9}[.)])\s+/);
       if (listMatch) {
         const listTokens = this.matchList(lines, pos);
@@ -202,7 +195,6 @@ class Tokenizer {
         }
       }
 
-      // Перевіряємо таблицю
       if (this.isTableLine(line) && pos + 1 < lines.length) {
         const tableMatch = this.matchTable(lines, pos);
         if (tableMatch) {
@@ -213,7 +205,6 @@ class Tokenizer {
         }
       }
 
-      // Перевіряємо HTML блок
       if (line.match(/^<(?!script|style|pre|textarea)/i)) {
         const htmlMatch = this.matchHtmlBlock(lines, pos);
         if (htmlMatch) {
@@ -224,7 +215,6 @@ class Tokenizer {
         }
       }
 
-      // Перевіряємо блок коду (4 пробіли)
       if (line.match(/^    \S/) || line.match(/^\t\S/)) {
         const codeMatch = this.matchIndentedCode(lines, pos);
         tokens.push(codeMatch.token);
@@ -233,7 +223,6 @@ class Tokenizer {
         continue;
       }
 
-      // За замовчуванням - параграф
       if (!matched) {
         const paraMatch = this.matchParagraph(lines, pos);
         tokens.push(paraMatch.token);
@@ -245,11 +234,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить огороджений блок коду
+   * Мечить огороджений блок коду
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object|null} Результат матчу
+   * @returns {object|null} Результат мечу
    */
   matchFencedCode(lines, startLine) {
     const line = lines[startLine];
@@ -261,13 +250,16 @@ class Tokenizer {
     const info = line.slice(fence[1].length).trim();
     const content = [];
     let endLine = startLine;
+    let foundClosing = false;
 
     for (let i = startLine + 1; i < lines.length; i++) {
       if (lines[i].trim().startsWith(fenceStr)) {
         endLine = i;
+        foundClosing = true;
         break;
       }
       content.push(lines[i]);
+      endLine = i;
     }
 
     return {
@@ -283,11 +275,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить цитату
+   * Мечить цитату
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object|null} Результат матчу
+   * @returns {object|null} Результат мечу
    */
   matchBlockquote(lines, startLine) {
     const content = [];
@@ -319,11 +311,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить список
+   * Мечить список
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object} Результат матчу
+   * @returns {object} Результат мечу
    */
   matchList(lines, startLine) {
     const line = lines[startLine];
@@ -353,7 +345,6 @@ class Tokenizer {
         });
         endLine = i;
       } else if (currentLine.match(/^  /) && items.length > 0) {
-        // Продовження попередньої позиції
         items[items.length - 1].content += "\n" + currentLine;
         endLine = i;
       } else {
@@ -383,11 +374,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить таблицю
+   * Мечить таблицю
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object|null} Результат матчу
+   * @returns {object|null} Результат мечу
    */
   matchTable(lines, startLine) {
     const headerLine = lines[startLine];
@@ -395,7 +386,6 @@ class Tokenizer {
 
     if (!separatorLine) return null;
 
-    // Перевіряємо, чи це валідний розділювач
     const separatorCells = separatorLine.split("|").map((cell) => cell.trim());
     const isValidSeparator = separatorCells.every(
       (cell) => /^:?-+:?$/.test(cell) || cell === ""
@@ -410,7 +400,6 @@ class Tokenizer {
     const headers = [];
     const rows = [];
 
-    // Парсимо заголовки
     for (const cell of headerCells) {
       const align = this.parseTableAlignment(
         separatorLine,
@@ -422,7 +411,6 @@ class Tokenizer {
       });
     }
 
-    // Парсимо рядки таблиці
     let endLine = startLine + 1;
     for (let i = startLine + 2; i < lines.length; i++) {
       const line = lines[i];
@@ -473,11 +461,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить HTML блок
+   * Мечить HTML блок
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object|null} Результат матчу
+   * @returns {object|null} Результат мечу
    */
   matchHtmlBlock(lines, startLine) {
     const line = lines[startLine];
@@ -517,11 +505,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить блок коду з відступом
+   * Мечить блок коду з відступом
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object} Результат матчу
+   * @returns {object} Результат мечу
    */
   matchIndentedCode(lines, startLine) {
     const content = [];
@@ -555,11 +543,11 @@ class Tokenizer {
   }
 
   /**
-   * Матчить параграф
+   * Мечить параграф
    * @private
    * @param {array} lines - Масив рядків
    * @param {number} startLine - Початковий рядок
-   * @returns {object} Результат матчу
+   * @returns {object} Результат мечу
    */
   matchParagraph(lines, startLine) {
     const content = [lines[startLine]];
@@ -607,7 +595,6 @@ class Tokenizer {
     while (pos < text.length) {
       let matched = false;
 
-      // Перевіряємо code
       const codeMatch = text.slice(pos).match(/^`([^`]+)`/);
       if (codeMatch) {
         tokens.push({
@@ -620,7 +607,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо посилання
       const linkMatch = text
         .slice(pos)
         .match(/^\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/);
@@ -637,7 +623,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо зображення
       const imageMatch = text
         .slice(pos)
         .match(/^!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]*)")?\)/);
@@ -654,7 +639,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо жирний текст
       const strongMatch = text
         .slice(pos)
         .match(/^\*\*([^\*]+)\*\*|^__([^_]+)__/);
@@ -670,7 +654,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо курсив
       const emMatch = text
         .slice(pos)
         .match(/^\*([^\*]+)\*(?!\*)|^_([^_]+)_(?!_)/);
@@ -686,7 +669,6 @@ class Tokenizer {
         continue;
       }
 
-      // Перевіряємо закреслений текст
       if (this.options.strikethrough) {
         const delMatch = text.slice(pos).match(/^~~([^~]+)~~/);
         if (delMatch) {
@@ -701,9 +683,8 @@ class Tokenizer {
         }
       }
 
-      // За замовчуванням - звичайний текст
       if (!matched) {
-        const textMatch = text.slice(pos).match(/^[^\*\[\]!_`~]+/);
+        const textMatch = text.slice(pos).match(/^(?:(?!!\[)[^\*\[\]_`~])+/);
         if (textMatch) {
           tokens.push({
             type: "text",
