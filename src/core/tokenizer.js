@@ -253,12 +253,46 @@ class Tokenizer {
     let foundClosing = false;
 
     for (let i = startLine + 1; i < lines.length; i++) {
-      if (lines[i].trim().startsWith(fenceStr)) {
+      const currentLine = lines[i];
+
+      if (
+        currentLine.match(
+          new RegExp(`^${fenceStr.replace(/([`\\])/g, "\\$1")}\\s*$`)
+        )
+      ) {
         endLine = i;
         foundClosing = true;
         break;
       }
-      content.push(lines[i]);
+
+      const fenceIndex = currentLine.indexOf(fenceStr);
+      if (fenceIndex >= 0) {
+        const beforeFence = currentLine.slice(0, fenceIndex);
+        const fromFence = currentLine.slice(fenceIndex);
+
+        if (
+          beforeFence.match(/^\s*$/) &&
+          fromFence.match(
+            new RegExp(`^${fenceStr.replace(/([`\\])/g, "\\$1")}\\s*$`)
+          )
+        ) {
+          endLine = i;
+          foundClosing = true;
+          break;
+        } else if (
+          fenceIndex > 0 &&
+          fromFence.match(
+            new RegExp(`^${fenceStr.replace(/([`\\])/g, "\\$1")}`)
+          )
+        ) {
+          content.push(currentLine.slice(0, fenceIndex));
+          endLine = i;
+          foundClosing = true;
+          break;
+        }
+      }
+
+      content.push(currentLine);
       endLine = i;
     }
 
