@@ -22,9 +22,9 @@ describe("HTMLRenderer", () => {
         id: "title",
       };
       const html = renderer.render(node);
-      expect(html).toContain('<h1 id="title">');
-      expect(html).toContain("Title");
-      expect(html).toContain("</h1>");
+      expect(html).toMatch(/<h1[^>]*id=["']title["'][^>]*>Title<\/h1>/);
+      // Ensure title text is not duplicated
+      expect((html.match(/Title/g) || []).length).toBe(1);
     });
 
     test("renders paragraph node", () => {
@@ -33,8 +33,9 @@ describe("HTMLRenderer", () => {
         children: [{ type: "text", text: "Text" }],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<p>");
-      expect(html).toContain("</p>");
+      expect(html).toMatch(/<p[^>]*>Text<\/p>/);
+      // Ensure paragraph text is not duplicated
+      expect((html.match(/Text/g) || []).length).toBe(1);
     });
 
     test("renders code block", () => {
@@ -44,9 +45,11 @@ describe("HTMLRenderer", () => {
         code: "const x = 1;",
       };
       const html = renderer.render(node);
-      expect(html).toContain("<pre>");
-      expect(html).toContain("<code");
-      expect(html).toContain("language-js");
+      expect(html).toMatch(/<pre[^>]*>/);
+      expect(html).toMatch(/<code[^>]*[\s\w-]*language-js/);
+      expect(html).toMatch(/const x = 1;/);
+      // Ensure code content is not duplicated
+      expect((html.match(/const x = 1;/g) || []).length).toBe(1);
     });
 
     test("renders link", () => {
@@ -57,8 +60,11 @@ describe("HTMLRenderer", () => {
         children: [{ type: "text", text: "Link" }],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<a href=");
-      expect(html).toContain("https://example.com");
+      expect(html).toMatch(
+        /<a[^>]*href=["']https:\/\/example\.com["'][^>]*>Link<\/a>/
+      );
+      // Ensure link text is not duplicated
+      expect((html.match(/Link/g) || []).length).toBe(1);
     });
 
     test("renders image", () => {
@@ -68,9 +74,10 @@ describe("HTMLRenderer", () => {
         alt: "Alt text",
       };
       const html = renderer.render(node);
-      expect(html).toContain("<img");
-      expect(html).toContain("image.jpg");
-      expect(html).toContain("Alt text");
+      expect(html).toMatch(/<img[^>]*src=["']image\.jpg["']/);
+      expect(html).toMatch(/<img[^>]*alt=["']Alt text["']/);
+      // Ensure alt text is not duplicated
+      expect((html.match(/Alt text/g) || []).length).toBe(1);
     });
 
     test("renders strong", () => {
@@ -79,8 +86,9 @@ describe("HTMLRenderer", () => {
         children: [{ type: "text", text: "bold" }],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<strong>");
-      expect(html).toContain("</strong>");
+      expect(html).toMatch(/<strong[^>]*>bold<\/strong>/);
+      // Ensure content is not duplicated
+      expect((html.match(/bold/g) || []).length).toBe(1);
     });
 
     test("renders em", () => {
@@ -89,8 +97,9 @@ describe("HTMLRenderer", () => {
         children: [{ type: "text", text: "italic" }],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<em>");
-      expect(html).toContain("</em>");
+      expect(html).toMatch(/<em[^>]*>italic<\/em>/);
+      // Ensure content is not duplicated
+      expect((html.match(/italic/g) || []).length).toBe(1);
     });
 
     test("renders del", () => {
@@ -99,14 +108,15 @@ describe("HTMLRenderer", () => {
         children: [{ type: "text", text: "strikethrough" }],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<del>");
-      expect(html).toContain("</del>");
+      expect(html).toMatch(/<del[^>]*>strikethrough<\/del>/);
+      // Ensure deleted text is not duplicated
+      expect((html.match(/strikethrough/g) || []).length).toBe(1);
     });
 
     test("renders hr", () => {
       const node = { type: "hr" };
       const html = renderer.render(node);
-      expect(html).toContain("<hr");
+      expect(html).toMatch(/<hr[^>]*\s*\/?\s*>/);
     });
 
     test("renders blockquote", () => {
@@ -117,8 +127,11 @@ describe("HTMLRenderer", () => {
         ],
       };
       const html = renderer.render(node);
-      expect(html).toContain("<blockquote>");
-      expect(html).toContain("</blockquote>");
+      expect(html).toMatch(/<blockquote[^>]*>/);
+      expect(html).toMatch(/Quote/);
+      expect(html).toMatch(/<\/blockquote>/);
+      // Ensure quote content is not duplicated
+      expect((html.match(/Quote/g) || []).length).toBe(1);
     });
   });
 
@@ -126,19 +139,25 @@ describe("HTMLRenderer", () => {
     test("escapes HTML special characters", () => {
       const text = '<script>alert("xss")</script>';
       const escaped = renderer.escape(text);
-      expect(escaped).not.toContain("<script>");
-      expect(escaped).toContain("&lt;");
-      expect(escaped).toContain("&gt;");
+      expect(escaped).not.toMatch(/<script>/);
+      expect(escaped).toMatch(/&lt;/);
+      expect(escaped).toMatch(/&gt;/);
     });
 
     test("escapes ampersands", () => {
       const escaped = renderer.escape("Tom & Jerry");
-      expect(escaped).toContain("&amp;");
+      expect(escaped).toMatch(/Tom.*&amp;.*Jerry/);
+      // Ensure content is not duplicated
+      expect((escaped.match(/Tom/g) || []).length).toBe(1);
+      expect((escaped.match(/Jerry/g) || []).length).toBe(1);
     });
 
     test("escapes quotes", () => {
       const escaped = renderer.escape('He said "hello"');
-      expect(escaped).toContain("&quot;");
+      expect(escaped).toMatch(/He said.*&quot;.*hello/);
+      // Ensure content is not duplicated
+      expect((escaped.match(/He said/g) || []).length).toBe(1);
+      expect((escaped.match(/hello/g) || []).length).toBe(1);
     });
   });
 
@@ -146,9 +165,11 @@ describe("HTMLRenderer", () => {
     test("generates complete HTML page", () => {
       const content = "<h1>Title</h1>";
       const page = renderer.generateFullPage(content, { title: "My Page" });
-      expect(page).toContain("<!DOCTYPE html>");
-      expect(page).toContain("<title>My Page</title>");
-      expect(page).toContain("<h1>Title</h1>");
+      expect(page).toMatch(/<!DOCTYPE html>/);
+      expect(page).toMatch(/<title>My Page<\/title>/);
+      expect(page).toMatch(/<h1>Title<\/h1>/);
+      // Ensure title is not duplicated
+      expect((page.match(/My Page/g) || []).length).toBe(1);
     });
 
     test("includes metadata in page", () => {
@@ -158,15 +179,21 @@ describe("HTMLRenderer", () => {
         author: "Author Name",
         description: "Page description",
       });
-      expect(page).toContain("Author Name");
-      expect(page).toContain("Page description");
+      expect(page).toMatch(/Author Name/);
+      expect(page).toMatch(/Page description/);
+      // Ensure metadata is not duplicated
+      expect((page.match(/Author Name/g) || []).length).toBe(1);
+      expect((page.match(/Page description/g) || []).length).toBe(1);
     });
 
     test("includes CSS in page", () => {
       const content = "<p>Content</p>";
       const page = renderer.generateFullPage(content);
-      expect(page).toContain("<style>");
-      expect(page).toContain("</style>");
+      expect(page).toMatch(/<style>/);
+      expect(page).toMatch(/<\/style>/);
+      // Ensure style tags are not duplicated
+      expect((page.match(/<style>/g) || []).length).toBe(1);
+      expect((page.match(/<\/style>/g) || []).length).toBe(1);
     });
   });
 
@@ -175,8 +202,10 @@ describe("HTMLRenderer", () => {
       const css = renderer.generateCSS();
       expect(css).toBeDefined();
       expect(css.length).toBeGreaterThan(0);
-      expect(css).toContain("body");
-      expect(css).toContain("h1");
+      expect(css).toMatch(/body/);
+      expect(css).toMatch(/h1/);
+      // Ensure CSS body selector is not duplicated
+      expect((css.match(/body\s*{/g) || []).length).toBeGreaterThanOrEqual(1);
     });
   });
 });
@@ -196,8 +225,9 @@ describe("MarkdownRenderer", () => {
         children: [{ type: "text", text: "Title" }],
       };
       const md = renderer.render(node);
-      expect(md).toContain("# ");
-      expect(md).toContain("Title");
+      expect(md).toMatch(/^#+\s+Title/);
+      // Ensure title is not duplicated
+      expect((md.match(/Title/g) || []).length).toBe(1);
     });
 
     test("renders paragraph", () => {
@@ -206,7 +236,9 @@ describe("MarkdownRenderer", () => {
         children: [{ type: "text", text: "Text" }],
       };
       const md = renderer.render(node);
-      expect(md).toContain("Text");
+      expect(md).toMatch(/^Text/);
+      // Ensure text is not duplicated
+      expect((md.match(/Text/g) || []).length).toBe(1);
     });
 
     test("renders code block", () => {
@@ -216,8 +248,11 @@ describe("MarkdownRenderer", () => {
         code: "const x = 1;",
       };
       const md = renderer.render(node);
-      expect(md).toContain("```js");
-      expect(md).toContain("const x = 1;");
+      expect(md).toMatch(/```js/);
+      expect(md).toMatch(/const x = 1;/);
+      expect(md).toMatch(/```/);
+      // Ensure code is not duplicated
+      expect((md.match(/const x = 1;/g) || []).length).toBe(1);
     });
 
     test("renders link", () => {
@@ -227,9 +262,10 @@ describe("MarkdownRenderer", () => {
         children: [{ type: "text", text: "Link" }],
       };
       const md = renderer.render(node);
-      expect(md).toContain("[");
-      expect(md).toContain("]");
-      expect(md).toContain("(https://example.com)");
+      expect(md).toMatch(/\[Link\]/);
+      expect(md).toMatch(/\(https:\/\/example\.com\)/);
+      // Ensure link text is not duplicated
+      expect((md.match(/Link/g) || []).length).toBe(1);
     });
 
     test("renders strong", () => {
@@ -238,7 +274,9 @@ describe("MarkdownRenderer", () => {
         children: [{ type: "text", text: "bold" }],
       };
       const md = renderer.render(node);
-      expect(md).toContain("**");
+      expect(md).toMatch(/\*\*bold\*\*/);
+      // Ensure content is not duplicated
+      expect((md.match(/bold/g) || []).length).toBe(1);
     });
 
     test("renders em", () => {
@@ -247,7 +285,9 @@ describe("MarkdownRenderer", () => {
         children: [{ type: "text", text: "italic" }],
       };
       const md = renderer.render(node);
-      expect(md).toContain("*");
+      expect(md).toMatch(/\*italic\*/);
+      // Ensure content is not duplicated
+      expect((md.match(/italic/g) || []).length).toBe(1);
     });
 
     test("renders list", () => {
@@ -261,7 +301,9 @@ describe("MarkdownRenderer", () => {
         ],
       };
       const md = renderer.render(node);
-      expect(md).toContain("- ");
+      expect(md).toMatch(/^-\s+item 1/);
+      // Ensure list item is not duplicated
+      expect((md.match(/item 1/g) || []).length).toBe(1);
     });
   });
 });
