@@ -611,4 +611,102 @@ describe("Load Tests - Real HTTP Server", () => {
       expect(metrics.avgLatency).toBeLessThan(500 * SLOW_FACTOR);
     });
   });
+
+  describe("Extreme Scale Load Testing", () => {
+    test("simulates 100,000 sequential requests", async () => {
+      const markdown = "# Test";
+      
+      console.log("Starting 100,000 sequential requests test...");
+      const testStartTime = Date.now();
+
+      for (let i = 0; i < 100000; i++) {
+        await tester.sendConvertRequest(markdown);
+        if ((i + 1) % 10000 === 0) {
+          console.log(`Progress: ${i + 1}/100000 requests completed`);
+        }
+      }
+
+      const metrics = tester.getMetrics();
+      const duration = Date.now() - testStartTime;
+      console.log(`100,000 sequential requests completed in ${duration}ms`);
+      console.log("100K sequential requests (real HTTP):", metrics);
+      reporter.saveMetricsJson("sequential-100k", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-100k", metrics);
+
+      expect(metrics.successfulRequests).toBe(100000);
+    }, 600000); // 10 minute timeout
+
+    test("simulates 500,000 sequential requests", async () => {
+      const markdown = "# Test";
+      
+      console.log("Starting 500,000 sequential requests test...");
+      const testStartTime = Date.now();
+
+      for (let i = 0; i < 500000; i++) {
+        await tester.sendConvertRequest(markdown);
+        if ((i + 1) % 50000 === 0) {
+          console.log(`Progress: ${i + 1}/500000 requests completed`);
+        }
+      }
+
+      const metrics = tester.getMetrics();
+      const duration = Date.now() - testStartTime;
+      console.log(`500,000 sequential requests completed in ${duration}ms`);
+      console.log("500K sequential requests (real HTTP):", metrics);
+      reporter.saveMetricsJson("sequential-500k", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-500k", metrics);
+
+      expect(metrics.successfulRequests).toBe(500000);
+    }, 1200000); // 20 minute timeout
+
+    test("simulates 1,000,000 sequential requests", async () => {
+      const markdown = "# Test";
+      
+      console.log("Starting 1,000,000 sequential requests test...");
+      const testStartTime = Date.now();
+
+      for (let i = 0; i < 1000000; i++) {
+        await tester.sendConvertRequest(markdown);
+        if ((i + 1) % 100000 === 0) {
+          console.log(`Progress: ${i + 1}/1000000 requests completed`);
+        }
+      }
+
+      const metrics = tester.getMetrics();
+      const duration = Date.now() - testStartTime;
+      console.log(`1,000,000 sequential requests completed in ${duration}ms`);
+      console.log("1M sequential requests (real HTTP):", metrics);
+      reporter.saveMetricsJson("sequential-1m", metrics);
+      reporter.appendMetricsToCSV("load-tests", "sequential-1m", metrics);
+
+      expect(metrics.successfulRequests).toBe(1000000);
+    }, 1800000); // 30 minute timeout
+
+    test("simulates 100,000 batched concurrent requests (10 batches x 10k)", async () => {
+      const markdown = "# Test";
+      const BATCH_SIZE = 10000;
+      const TOTAL_REQUESTS = 100000;
+      
+      console.log("Starting 100,000 batched concurrent requests test...");
+      const testStartTime = Date.now();
+
+      for (let batch = 0; batch < TOTAL_REQUESTS / BATCH_SIZE; batch++) {
+        const promises = [];
+        for (let i = 0; i < BATCH_SIZE; i++) {
+          promises.push(tester.sendConvertRequest(markdown));
+        }
+        await Promise.all(promises);
+        console.log(`Batch ${batch + 1}/${TOTAL_REQUESTS / BATCH_SIZE} completed`);
+      }
+
+      const metrics = tester.getMetrics();
+      const duration = Date.now() - testStartTime;
+      console.log(`100,000 batched concurrent requests completed in ${duration}ms`);
+      console.log("100K batched concurrent requests (real HTTP):", metrics);
+      reporter.saveMetricsJson("batched-100k", metrics);
+      reporter.appendMetricsToCSV("load-tests", "batched-100k", metrics);
+
+      expect(metrics.successfulRequests).toBe(100000);
+    }, 600000); // 10 minute timeout
+  });
 });
