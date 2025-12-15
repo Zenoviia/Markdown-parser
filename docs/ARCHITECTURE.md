@@ -188,7 +188,7 @@ parseWithRenderer(markdown, renderer); // Custom renderer
 validate(markdown); // Check validity
 ```
 
-**Advanced Features (formerly in AdvancedParser):**
+**Advanced Features:**
 
 ```javascript
 // Caching
@@ -240,23 +240,6 @@ getVocabulary(markdown); // Get unique words
   estimatedReadTime: number, // in seconds
 }
 ```
-
-**Design Decision: Unified Parser**
-
-Previously, functionality was split between `MarkdownParser` (core parsing) and `AdvancedParser` (validation, analysis, formatting). This caused:
-
-- Maintenance burden (two parallel implementations)
-- Inconsistent behavior (bug in one parser affected only one code path)
-- Confusion about which parser to use
-
-**Solution:** All AdvancedParser functionality has been merged into MarkdownParser. The class now provides:
-
-- Single point of maintenance
-- Consistent behavior across all parsing paths
-- Unified API for all Markdown processing tasks
-- No breaking changes (all methods are additive)
-
-Related tests moved from `tests/unit/advancedParser.test.js` to `tests/unit/parser.advanced.test.js`.
 
 ### 5. Plugin System (`src/plugins/pluginSystem.js`)
 
