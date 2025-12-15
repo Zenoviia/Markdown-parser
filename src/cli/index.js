@@ -9,7 +9,6 @@ const MarkdownParser = require("../core/parser");
 const HTMLRenderer = require("../renderers/htmlRenderer");
 const MarkdownRenderer = require("../renderers/markdownRenderer");
 const { PluginManager } = require("../plugins/pluginSystem");
-const AdvancedParser = require("../core/advancedParser");
 
 /**
  * Основний клас CLI
@@ -141,8 +140,8 @@ class CLI {
 
     const validation = this.parser.validate(markdown);
 
-    const advancedParser = new AdvancedParser();
-    const formattingIssues = advancedParser.validateFormatting(markdown);
+    // Використовуємо об'єднаний parser для валідації форматування
+    const formattingIssues = this.parser.validateFormatting(markdown);
 
     const allErrors = [
       ...validation.errors,
