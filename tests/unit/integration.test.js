@@ -1,8 +1,3 @@
-/**
- * Integration Tests
- * Інтеграційні тести для всієї системи
- */
-
 const MarkdownParser = require("../../src/core/parser");
 const {
   PluginManager,
@@ -57,13 +52,15 @@ console.log(greeting);
 
       const html = parser.parse(markdown);
       expect(html).toBeTruthy();
-      expect(html).toContain("<h1");
-      expect(html).toContain("<h2");
-      expect(html).toContain("<ul");
-      expect(html).toContain("<code");
-      expect(html).toContain("<a href");
-      expect(html).toContain("<img");
-      expect(html).toContain("<table");
+      expect(html).toMatch(/<h1[^>]*>[^<]*Document Title[^<]*<\/h1>/);
+      expect(html).toMatch(/<h2[^>]*>[^<]*Section 1[^<]*<\/h2>/);
+      expect(html).toMatch(/<ul[^>]*>/);
+      expect(html).toMatch(/<code[^>]*>/);
+      expect(html).toMatch(/<a[^>]*href="https:\/\/example\.com"[^>]*>/);
+      expect(html).toMatch(
+        /<img[^>]*src="https:\/\/example\.com\/image\.jpg"[^>]*>/
+      );
+      expect(html).toMatch(/<table[^>]*>/);
     });
 
     test("AST generation and statistics", () => {
@@ -112,8 +109,8 @@ Content with [link](url) and ![image](img.jpg)
   describe("API Methods", () => {
     test("API parse method", () => {
       const html = API.parseMarkdown("# Title\nParagraph");
-      expect(html).toContain("<h1");
-      expect(html).toContain("Paragraph");
+      expect(html).toMatch(/<h1[^>]*>[^<]*Title[^<]*<\/h1>/);
+      expect(html).toMatch(/<p[^>]*>[^<]*Paragraph[^<]*<\/p>/);
     });
 
     test("API statistics", () => {
@@ -201,7 +198,8 @@ function hello() {
     test("continues parsing after errors", () => {
       const markdown = "# Valid\n\n[Invalid](unclosed\n\n# Still valid";
       const html = parser.parse(markdown);
-      expect(html).toContain("<h1");
+      expect(html).toMatch(/<h1[^>]*>/);
+      expect((html.match(/<h1[^>]*>/g) || []).length).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -217,7 +215,9 @@ function hello() {
       const duration = Date.now() - start;
 
       expect(html).toBeTruthy();
-      expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
+      expect(html).toMatch(/<h1[^>]*>/);
+      expect((html.match(/<h1[^>]*>/g) || []).length).toBe(100);
+      expect(duration).toBeLessThan(5000);
     });
   });
 
@@ -226,7 +226,6 @@ function hello() {
       const original = "# Title\n\n**Bold** and *italic*\n\n- List item";
       const html = parser.parse(original);
       expect(html).toBeTruthy();
-      // Note: Perfect roundtrip not always possible due to formatting
     });
   });
 });
