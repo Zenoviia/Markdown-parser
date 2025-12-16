@@ -40,8 +40,8 @@ A comprehensive, high-performance Markdown parser for Node.js with support for c
 
 ### Reliability
 
-- ✅ **High Test Coverage** 
-- ✅ **Property-based Testing** 
+- ✅ **High Test Coverage**
+- ✅ **Property-based Testing**
 - ✅ **Load Testing** - Validated for 1000+ concurrent requests
 - ✅ **Security** - XSS prevention, HTML escaping
 - ✅ **Error Handling** - Comprehensive error recovery
@@ -50,106 +50,229 @@ A comprehensive, high-performance Markdown parser for Node.js with support for c
 
 ### Installation
 
-### Using the API
+```bash
+npm install
+```
+
+### Programmatic Usage (Library)
 
 ```javascript
-const api = require('./src/api');
+const { MarkdownParser } = require("markdown-parser");
 
-// Parse Markdown to HTML
-const html = api.parseMarkdownToHTML('# Welcome\n\nHello **world**!');
+const parser = new MarkdownParser();
+const html = parser.parse("# Hello\n\n**Bold** text");
+console.log(html);
+```
 
-// Generate table of contents
-const toc = api.generateTableOfContents('# Chapter 1\n## Section 1.1\n# Chapter 2');
+See [docs/API.md](docs/API.md) for complete API reference.
 
-// Extract all links
-const links = parser.parseToAST('Check [this link](https://example.com)');
-const extracted = parser.astBuilder.extractLinks(links);
-````
+### Server (HTTP API)
 
-### Using the CLI
+Start the Express server:
 
 ```bash
-# Convert Markdown to HTML
-node bin/cli.js convert input.md --output output.html
-
-# Validate Markdown file
-node bin/cli.js validate document.md
-
-# Get document statistics
-node bin/cli.js stats README.md
-
-# Generate table of contents
-node bin/cli.js toc README.md --output TOC.md
-
-# Watch file for changes
-node bin/cli.js watch src/docs/ --output dist/
-```
-
-## 📚 Documentation
-
-- **[API.md](docs/API.md)** - Complete API reference
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and architecture
-- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test suites
-- **[examples/usage.js](examples/usage.js)** - 15+ practical examples
-
-## 🌐 HTTP Server & Endpoints
-
-The project exposes a small Express-based HTTP server. Start it locally with:
-
-```powershell
 npm start
-# or (preserve original CLI): npm run start:cli
 ```
 
-Default server port: `3000`.
-
-Available endpoints (JSON requests):
-
-- `POST /parse` — body: `{ "markdown": "# Hello" }` → response: `{ "ast": { ... } }`
-- `POST /convert` — body: `{ "markdown": "# Hello" }` → response: `{ "html": "<h1>..." }`
-- `POST /validate` — body: `{ "markdown": "..." }` → response: validation object
-- `POST /statistics` — body: `{ "markdown": "..." }` → response: statistics object
-
-Examples:
-
-curl (Bash):
+Then make HTTP requests:
 
 ```bash
 curl -X POST http://localhost:3000/convert \
-	-H "Content-Type: application/json" \
-	-d '{"markdown":"# Hello\n\nWorld"}'
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello"}'
 ```
 
-PowerShell:
+See **[HTTP Server & Endpoints](#-http-server--endpoints)** section below.
+
+### CLI (Command-line)
+
+Process Markdown files:
+
+```bash
+markdown-parser convert input.md --output output.html
+markdown-parser stats document.md
+markdown-parser toc document.md
+```
+
+See **[CLI Usage](#-cli-usage)** section below.
+
+## 📚 Documentation
+
+Complete documentation is available in the `docs/` directory:
+
+- **[API.md](docs/API.md)** - Full API reference with all classes, methods, plugins, and utilities
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design, component overview, and data flow
+- **[TESTING.md](docs/TESTING.md)** - Testing strategy, test structure, and running tests
+- **[examples/usage.js](examples/usage.js)** - 15+ practical usage examples
+
+## 🌐 HTTP Server & Endpoints
+
+The project exposes an Express-based HTTP server for REST API access.
+
+### Starting the Server
+
+```bash
+npm start         # Start HTTP server on port 3000
+```
+
+**Port:** Default `3000`
+
+### Available Endpoints
+
+All endpoints expect `Content-Type: application/json`
+
+#### `POST /parse`
+
+Parse Markdown to AST.
+
+```bash
+curl -X POST http://localhost:3000/parse \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello"}'
+```
+
+Response: `{ "ast": { type: "root", children: [...] } }`
+
+#### `POST /convert`
+
+Parse Markdown to HTML.
+
+```bash
+curl -X POST http://localhost:3000/convert \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello\n\nWorld"}'
+```
+
+Response: `{ "html": "<h1>Hello</h1>\n<p>World</p>" }`
+
+#### `POST /validate`
+
+Validate Markdown syntax.
+
+```bash
+curl -X POST http://localhost:3000/validate \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello"}'
+```
+
+Response: `{ "valid": true, "errors": [] }`
+
+#### `POST /statistics`
+
+Get document statistics.
+
+```bash
+curl -X POST http://localhost:3000/statistics \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# Hello\n\nContent"}'
+```
+
+Response: `{ "lines": 2, "characters": 18, "words": 2, "headings": 1, ... }`
+
+### PowerShell Examples
 
 ```powershell
-Invoke-RestMethod -Method POST -Uri http://localhost:3000/convert -ContentType 'application/json' -Body (@{ markdown = "# Hi" } | ConvertTo-Json)
+# Convert
+Invoke-RestMethod -Method POST -Uri http://localhost:3000/convert `
+  -ContentType 'application/json' `
+  -Body (@{ markdown = "# Hi" } | ConvertTo-Json)
+
+# Validate
+Invoke-RestMethod -Method POST -Uri http://localhost:3000/validate `
+  -ContentType 'application/json' `
+  -Body (@{ markdown = "# Hi" } | ConvertTo-Json)
 ```
 
-Notes:
-
-- The server expects `Content-Type: application/json` for POST requests and enforces a default body size limit (100KB). Invalid JSON or wrong content type returns `400`.
-- Internal errors return `500` with a JSON error message.
+### Configuration
 
 Environment variables:
 
-- `BODY_SIZE_LIMIT` — JSON body size limit (e.g. `100kb`). Default: `100kb`.
-- `RATE_LIMIT_WINDOW_MS` — Rate limiter window in milliseconds. Default: `60000` (1 minute).
-- `RATE_LIMIT_MAX` — Max requests per window for global limiter. Default: `100`.
-- `TRUST_PROXY` — Set to `1` to enable `app.set('trust proxy', 1)` when behind a reverse proxy. Default: unset.
+### Security Features
 
-Security and rate limiting:
+- **Helmet.js** - Secure HTTP headers
+- **Express Rate Limiting** - Prevents abuse
+- **HTML Sanitization** - XSS prevention
+- **Input Validation** - Type checking
+- **Resource Limits** - DoS prevention
 
-- The server uses `helmet` to set secure HTTP headers.
-- A global rate limiter (`express-rate-limit`) is applied. Configure via `RATE_LIMIT_*` env vars.
+### Error Handling
 
-Load testing:
+- Invalid JSON or wrong `Content-Type`: `400 Bad Request`
+- Missing required fields: `400 Bad Request`
+- Server errors: `500 Internal Server Error`
 
-- Example `k6` script is provided in `tools/k6/convert.js`.
+All error responses include JSON: `{ "error": "message" }`
 
-Browser E2E:
+## 🖥️ CLI Usage
 
-- A Playwright test skeleton is added at `tests/e2e/playwright.skeleton.test.js`. Install Playwright and enable the test to run browser E2E.
+For command-line file processing.
+
+### Installation
+
+The CLI is included in the npm package:
+
+```bash
+npm install markdown-parser
+```
+
+### Commands
+
+#### convert
+
+Convert Markdown file to HTML:
+
+```bash
+markdown-parser convert input.md
+markdown-parser convert input.md --output output.html
+```
+
+#### validate
+
+Validate Markdown syntax:
+
+```bash
+markdown-parser validate document.md
+```
+
+Output shows errors and warnings if any.
+
+#### stats
+
+Display document statistics:
+
+```bash
+markdown-parser stats document.md
+```
+
+Shows: lines, characters, words, headings, links, images, lists, code blocks, tables.
+
+#### toc
+
+Generate table of contents:
+
+```bash
+markdown-parser toc document.md
+markdown-parser toc document.md --output toc.md
+```
+
+#### watch
+
+Watch file for changes and auto-convert:
+
+```bash
+markdown-parser watch input.md --output output.html
+```
+
+#### Other Commands
+
+```bash
+markdown-parser plugins      # List available plugins
+```
+
+### CLI vs Server
+
+**Choose CLI for:** One-off conversions, build scripts, automation  
+**Choose Server for:** Web services, APIs, continuous processing
 
 ## 🏗️ Project Structure
 
@@ -158,26 +281,26 @@ Browser E2E:
 │   ├── index.js                 # Main entry point
 │   ├── utils.js                 # Utility functions
 │   ├── core/
-│   │   ├── parser.js            # Main parser 
+│   │   ├── parser.js            # Main parser
 │   │   ├── tokenizer.js         # Tokenization
-│   │   └── astBuilder.js        # AST construction 
+│   │   └── astBuilder.js        # AST construction
 │   ├── renderers/
-│   │   ├── htmlRenderer.js      # HTML output 
-│   │   └── markdownRenderer.js  # Markdown output 
+│   │   ├── htmlRenderer.js      # HTML output
+│   │   └── markdownRenderer.js  # Markdown output
 │   ├── plugins/
-│   │   └── pluginSystem.js      # Plugin system 
+│   │   └── pluginSystem.js      # Plugin system
 │   ├── cli/
-│   │   └── index.js             # CLI interface 
+│   │   └── index.js             # CLI interface
 │   └── api/
 │       └── index.js             # Public API
 ├── tests/
-│   ├── unit/                    # Unit tests 
+│   ├── unit/                    # Unit tests
 │   ├── e2e/                     # E2E tests
-│   ├── performance/             # Performance tests 
-│   ├── randomized/              # Fuzz tests 
-│   └── load/                    # Load tests 
+│   ├── performance/             # Performance tests
+│   ├── randomized/              # Fuzz tests
+│   └── load/                    # Load tests
 ├── examples/
-│   └── usage.js                 # Usage examples 
+│   └── usage.js                 # Usage examples
 ├── docs/
 │   ├── API.md
 │   ├── ARCHITECTURE.md
@@ -294,5 +417,3 @@ See [examples/usage.js](examples/usage.js) for 15+ practical examples including:
 - Plugin creation
 - Batch file processing
 - Performance optimization
-
-
