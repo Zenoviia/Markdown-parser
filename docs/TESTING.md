@@ -15,19 +15,35 @@ This project implements comprehensive testing at multiple levels:
 
 ```
 tests/
-├── unit/                    # Unit tests for core modules
+├── unit/                           # Unit tests for core modules (19 files)
 │   ├── parser.test.js
+│   ├── parser.advanced.test.js
 │   ├── tokenizer.test.js
 │   ├── astBuilder.test.js
 │   ├── renderer.test.js
-│   └── integration.test.js
-├── e2e/                     # End-to-end API tests
-│   └── api.test.js
-├── performance/             # Performance benchmarks
+│   ├── markdownRenderer.more.test.js
+│   ├── api.test.js
+│   ├── api.extra.test.js
+│   ├── api.more.test.js
+│   ├── integration.test.js
+│   ├── pluginSystem.test.js
+│   ├── pluginSystem.more.test.js
+│   ├── pluginSystem.extended.test.js
+│   ├── pluginLifecycle.test.js
+│   ├── utils.test.js
+│   ├── server.start.test.js
+│   ├── bodySize.test.js
+│   ├── rateLimit.test.js
+│   └── textDuplicationBugFix.test.js
+├── e2e/                            # End-to-end API tests (3 files)
+│   ├── api.test.js
+│   ├── express-server.test.js
+│   └── playwright.skeleton.test.js
+├── performance/                    # Performance benchmarks (1 file)
 │   └── benchmarks.test.js
-├── randomized/              # Fuzz and property-based tests
+├── randomized/                     # Fuzz and property-based tests (1 file)
 │   └── fuzz.test.js
-└── load/                    # Load and stress tests
+└── load/                           # Load and stress tests (1 file)
     └── api-load.test.js
 ```
 
